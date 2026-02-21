@@ -1,0 +1,44 @@
+<html>
+<head>
+    <style>
+        *, body, html {
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+<table width="100%" style="width: 100%;border: none;border-spacing: 0;" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+        <td style="background-color: #cccccc; color: black; padding: 50px 0 0;">
+            <center>
+                <table width="600" style="width: 600px;margin: 0;border: none;border-spacing: 0;" cellpadding="0"
+                       cellspacing="0" border="0">
+                    <tr>
+                        <td style="text-align: center; font-size: 2em;">
+                            {% block title %}
+                                OIDC Server
+                            {% endblock %}
+                        </td>
+                    </tr>
+                </table>
+            </center>
+        </td>
+    </tr>
+    <tr>
+        <td style="background-color: #cccccc; color: black; padding: 50px 0 100px;">
+            <center>
+                <table width="600" style="width: 600px;margin: 0;border: none;border-spacing: 0;" cellpadding="0"
+                       cellspacing="0" border="0">
+                    <tr>
+                        <td style="padding: 50px;background-color: white;">
+                            {% block content %}{% endblock %}
+                        </td>
+                    </tr>
+                </table>
+            </center>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

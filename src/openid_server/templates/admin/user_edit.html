@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% import "macros/inputs.html" as inputs %}
+
+{% block content %}
+
+    <div class="mt-5">
+        <div class="mb-4">
+            <h1>Editing user: {{ user.name }}</h1>
+            <span>{{ user.id }}</span>
+        </div>
+
+        <form action="{{ url_for('admin.user_edit', user_id=user.id) }}" method="post">
+            {{ form.csrf_token }}
+            {{ inputs.render(form.name) }}
+            {{ inputs.render(form.email) }}
+            {{ inputs.render(form.family_name) }}
+            {{ inputs.render(form.given_name) }}
+
+            {% if user.picture %}
+                <div class="d-flex flex-column gap-3">
+                    <a href="{{ url_for('static', filename=user.picture) }}" target="_blank">
+                        <img src="{{ url_for('static', filename=user.picture) }}"
+                             width="100" alt="Profile picture of {{ user.name }}">
+                    </a>
+                    {{ inputs.render(form.delete_picture) }}
+                </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-danger">Submit</button>
+        </form>
+
+    </div>
+
+{% endblock %}

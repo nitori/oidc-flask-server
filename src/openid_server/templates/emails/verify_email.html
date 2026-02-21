@@ -1,0 +1,21 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+    <p>
+        Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa.
+    </p>
+    <p>
+        Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis,
+        ultricies nec, pellentesque eu, pretium quis, sem.
+    </p>
+    <p>
+        Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim
+        justo, rhoncus ut, imperdiet a, venenatis vitae, justo.
+    </p>
+    <p>
+        <a href="{{ url_for('user.verify_email', jwt_key=jwt_key, _external=True) }}">
+            Click this link to verify your e-mail!
+        </a>
+    </p>
+
+{% endblock %}

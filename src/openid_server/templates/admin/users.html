@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="mt-5">
+        <h1>User management</h1>
+
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th style="width:50px;"></th>
+                <th style="width:30px;"></th>
+                <th style="width:30%;">Name</th>
+                <th>E-Mail</th>
+                <th style="width:100px;" class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+                <tr>
+                    <td class="align-middle p-0">
+                        {% if user.picture %}
+                            <img src="{{ url_for('static', filename=user.picture) }}"
+                                 width="50" height="50" alt="Profile picture of {{ user.name }}"
+                                 class="img-fit">
+                        {% endif %}
+                    </td>
+                    <td class="align-middle">
+                        {% if user.is_admin %}
+                            <i class="fa-sharp fa-solid fa-user-crown" title="Admin"></i>
+                        {% endif %}
+                    </td>
+                    <td class="align-middle">{{ user.name }}</td>
+                    <td class="align-middle">{{ user.email|hide_email }}</td>
+
+                    <td class="align-middle">
+                        <div class="d-flex justify-content-end gap-1">
+                            <a href="{{ url_for('admin.user_edit', user_id=user.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fa-sharp fa-fw fa-solid fa-pen-to-square"></i>
+                            </a>
+                            {% if user != current_user %}
+                                <form action="{{ url_for('admin.user_delete', user_id=user.id) }}" method="post">
+                                    <button class="btn btn-sm btn-danger" type="submit">
+                                        <i class="fa-sharp fa-fw fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+{% endblock %}

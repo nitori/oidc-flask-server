@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% import "macros/tabs.html" as tabs %}
+
+{% block content %}
+    <div class="my-5">
+        <div class="d-flex justify-content-between">
+            <h1 class="mb-3">Your Apps</h1>
+        </div>
+
+        <div class="row flex-row-reverse justify-content-between">
+            <div class="col-12 col-lg-6 col-xl-4">
+                <div class="d-flex justify-content-end mb-4">
+                    <a href="{{ url_for('client.new_app') }}" class="btn btn-primary">Create new app</a>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-8 col-xl-6">
+                {% for client in current_user.clients %}
+                    {% set loop_index = loop.index %}
+                    <div id="client-{{ client.client_id }}">
+                        <h2 class="mb-4">{{ client.name }}</h2>
+                        <div class="mb-4">
+                            {% if client.is_public %}
+                                <div class="text-danger-emphasis">
+                                    This is a public client.<br>
+                                    Client Secret <strong>cannot</strong> be used securely.<br>
+                                </div>
+                                <div class="form-text">(e.g. SPA/Web-Apps, Desktop-Apps or Mobile Apps)</div>
+                            {% else %}
+                                <div class="text-success-emphasis">
+                                    This is a private client.<br>
+                                    Client Secret <strong>can</strong> be used securely.<br>
+                                </div>
+                                <div class="form-text">(Mostly server-side Apps)</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-4">
+                            <div>
+                                Preferred signing algorithm:
+                                <span class="badge text-bg-success">{{ client.preferred_algorithm }}</span>
+                            </div>
+                            <div class="form-text">
+                                Note: This does <em>not</em> guarantee JWT will be signed with this key.
+                                Please refer to our
+                                <a href="{{ url_for('frontend.well_known_jwks') }}"
+                                   target="_blank">jwks.json</a>
+                                to see what keys are currently available (the <code>"alg"</code> field).
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="client-id-{{ loop_index }}" class="form-label">Client ID</label>
+                            <div class="input-group">
+                                <input type="text" readonly class="form-control"
+                                       id="client-id-{{ loop_index }}"
+                                       value="{{ client.client_id }}">
+                                <button class="btn btn-primary"
+                                        onclick="navigator.clipboard.writeText('{{ client.client_id }}')">
+                                    <i class="fa-sharp fa-fw fa-solid fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% if not client.is_public %}
+                            <div class="mb-4">
+                                <label for="client-secret-{{ loop_index }}" class="form-label">
+                                    Client Secret
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" readonly class="form-control"
+                                           id="client-secret-{{ loop_index }}"
+                                           value="{{ client.client_secret }}">
+                                    <button class="btn btn-danger">
+                                        <i class="fa-sharp fa-fw fa-solid fa-eye d-none"></i>
+                                        <i class="fa-sharp fa-fw fa-solid fa-eye-slash"></i>
+                                    </button>
+                                    <button class="btn btn-primary"
+                                            onclick="navigator.clipboard.writeText('{{ client.client_secret }}')">
+                                        <i class="fa-sharp fa-fw fa-solid fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="mb-4">
+                            <label for="redirect-uris-{{ loop_index }}" class="form-label">Redirect URIs</label>
+                            <textarea class="form-control" id="redirect-uris-{{ loop_index }}"
+                                      readonly rows="{{ client.redirect_uris|length + 1 }}">
+                                        {%- for uri in client.redirect_uris -%}
+                                            {{ uri }}{% if not loop.last %}{{ "\n" }}{% endif %}
+                                        {%- endfor -%}
+                                    </textarea>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('client.edit_app', client_id=client.client_id) }}"
+                               class="btn btn-primary">
+                                Edit App
+                            </a>
+                            <form action="{{ url_for('client.delete_app', client_id=client.client_id) }}"
+                                  method="post">
+                                <button class="btn btn-danger">
+                                    Delete App
+                                </button>
+                            </form>
+                        </div>
+                        {% if not loop.last %}
+                            <hr class="mt-4 mb-5">
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

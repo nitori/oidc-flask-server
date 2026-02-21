@@ -1,0 +1,19 @@
+.idea/
+var/
+.env
+.env.*
+!.env.sample
+
+instance/
+uploads/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv

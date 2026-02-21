@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% import "macros/tabs.html" as tabs %}
+
+{% block content %}
+    <div class="my-5">
+        <div class="d-flex justify-content-between">
+            <h1 class="mb-3">Your Profile</h1>
+        </div>
+
+        <div>
+            {% if current_user.picture %}
+                <img src="{{ url_for('static', filename=current_user.picture) }}"
+                     width="100" height="100" class="img-fit">
+            {% endif %}
+
+            <h4>Name: {{ current_user.name }}</h4>
+            <h4 class="mb-4">
+                E-Mail: {{ current_user.email|hide_email }}
+                {% if current_user.email_verified %}
+                    <span class="badge text-bg-success">Verified</span>
+                {% else %}
+                    <span class="badge text-bg-danger">Not verified</span>
+                {% endif %}
+            </h4>
+            <a class="btn btn-primary" href="{{ url_for('user.edit_user') }}">Edit your profile</a>
+        </div>
+    </div>
+{% endblock %}

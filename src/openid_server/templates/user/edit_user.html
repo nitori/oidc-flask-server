@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% import "macros/inputs.html" as inputs %}
+
+{% block content %}
+    <div class="row mt-5 justify-content-center">
+        <div class="col-12 col-md-8 col-xl-6">
+            <form action="{{ url_for('user.edit_user') }}" method="post" enctype="multipart/form-data">
+                {{ form.csrf_token }}
+                {{ inputs.render(form.name) }}
+                {{ inputs.render(form.email) }}
+                {{ inputs.render(form.family_name) }}
+                {{ inputs.render(form.given_name) }}
+                {{ inputs.render(form.picture) }}
+                <div>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+{% endblock %}

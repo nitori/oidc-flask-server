@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% import "macros/inputs.html" as inputs %}
+
+{% block content %}
+
+    <div class="mt-5">
+        <h1>Key management</h1>
+
+        <table class="table table-striped w-100" style="table-layout: fixed">
+            <thead>
+            <tr>
+                <th style="width:170px;">Created</th>
+                <th style="width:210px;">KID</th>
+                <th style="width:100px;">Algorithm</th>
+                <th style="width:40%;">JWKS entry</th>
+                <th style="width:60px;">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for key in keys %}
+                <tr>
+                    <td class="text-nowrap">{{ key.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td class="text-nowrap">{{ key.id }}</td>
+                    <td>{{ key.alg }}</td>
+                    <td style="overflow: auto;" class="p-0">
+                        <pre class="m-0">{{ key|jwks|tojson(indent=4) }}</pre>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('admin.key_delete', key_id=key.id) }}" method="post">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fa-sharp fa-fw fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="row mt-5">
+            <div class="col-12 col-lg-6 col-xl-4">
+                <h2>Create new key</h2>
+                <form action="{{ url_for('admin.key_create') }}" method="post">
+                    {{ form.csrf_token }}
+                    {{ inputs.render(form.algorithm) }}
+                    <button class="btn btn-primary">Create key</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}

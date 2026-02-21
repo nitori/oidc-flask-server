@@ -1,0 +1,20 @@
+{% macro link(name, label, active=False) %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link{% if active %} active{% endif %}" id="{{ name }}-tab" data-bs-toggle="tab"
+                data-bs-target="#{{ name }}-tab-pane"
+                type="button" role="tab" aria-controls="{{ name }}-tab-pane"
+                aria-selected="{% if active %}true{% else %}false{% endif %}">
+            {{ label }}
+        </button>
+    </li>
+{% endmacro %}
+
+{% macro pane(name, active=False) %}
+    <div class="tab-pane fade{% if active %} show active{% endif %}"
+         id="{{ name }}-tab-pane" role="tabpanel" aria-labelledby="{{ name }}-tab"
+         tabindex="0">
+        <div class="p-5 border border-top-0">
+            {{ caller() }}
+        </div>
+    </div>
+{% endmacro %}

@@ -1,0 +1,55 @@
+{% macro render(input) %}
+    {% if input.errors %}
+        {% set classes = ' is-invalid' %}
+    {% else %}
+        {% set classes = '' %}
+    {% endif %}
+
+    <div class="mb-3">
+        {% if input.type == 'BooleanField' %}
+            <div class="form-check">
+                {{ input(class="form-check-input" + classes) }}
+                {{ input.label(class='form-check-label') }}
+            </div>
+        {% elif input.type == 'RecaptchaField' %}
+            <div class="{{ classes }}">
+                {{ input }}
+            </div>
+        {% else %}
+            {{ input.label(class='form-label') }}
+
+            {% if input.type == 'StringField' %}
+                {{ input(class="form-control" + classes) }}
+            {% elif input.type in ('TextAreaField', 'TextAreaListField') %}
+                {{ input(class="form-control" + classes, rows=10) }}
+            {% else %}
+                {{ input(class="form-control" + classes) }}
+            {% endif %}
+        {% endif %}
+
+        {% for error in input.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+
+        {% if input.type == 'WrappedFileField' %}
+            {% if input.max_file_size %}
+                <div id="{{ input.id }}-upload-size" class="form-text">
+                    Max file size: {{ input.max_file_size|filesizeformat(binary=True) }}
+                </div>
+            {% endif %}
+            {% if input.extensions_allowed %}
+                <div id="{{ input.id }}-upload-exts" class="form-text">
+                    Allowed extensions:
+                    {% for ext in input.extensions_allowed %}
+                        <code>.{{ ext }}</code>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+        {% if input.description %}
+            <div id="{{ input.id }}-help" class="form-text">
+                {{ input.description }}
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}

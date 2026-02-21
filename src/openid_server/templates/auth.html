@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block flash_messages %}{% endblock %}
+
+{% block content %}
+
+    <div class="box box--auth">
+
+        <p class="text-center">You are about to authorize</p>
+        <h1 class="box__app-name text-center mb-5">{{ client.name }}</h1>
+        <div class="text-center mb-5">
+            Signed in as: <strong>{{ current_user.name }}</strong>
+        </div>
+
+        <div>You allow:</div>
+        <div class="box__scopes">
+            <ul>
+                {% if 'profile' in scopes %}
+                    <li>Access basic user information</li>
+                {% endif %}
+                {% if 'email' in scopes %}
+                    <li>Access your email address</li>
+                {% endif %}
+            </ul>
+        </div>
+        <hr class="my-5">
+
+        <form action="{{ url_for('frontend.auth_post') }}" class="d-flex justify-content-between" method="post">
+            <input type="hidden" name="params" value="{{ signed_params }}">
+            <button class="btn btn-secondary" name="action" value="deny">Deny</button>
+            <button class="btn btn-success" name="action" value="authorize">Authorize</button>
+        </form>
+    </div>
+
+{% endblock %}
+
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+{% endblock %}
