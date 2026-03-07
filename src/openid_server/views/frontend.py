@@ -269,10 +269,10 @@ def openid_configuration():
         # settings.issuer is origin of a domain.
         # maybe separate each field later or something, but this should do for now.
         issuer=settings.issuer,
-        authorization_endpoint=f"{settings.issuer}/auth",
-        token_endpoint=f"{settings.issuer}/api/token",
-        userinfo_endpoint=f"{settings.issuer}/api/userinfo",
-        jwks_uri=f"{settings.issuer}/.well-known/jwks.json",
+        authorization_endpoint=url_for("frontend.auth", _external=True),
+        token_endpoint=url_for("api.token", _external=True),
+        userinfo_endpoint=url_for("api.userinfo", _external=True),
+        jwks_uri=url_for("frontend.well_known_jwks", _external=True),
         response_modes_supported=[
             "query",
             "fragment",
