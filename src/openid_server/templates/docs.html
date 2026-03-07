@@ -458,6 +458,71 @@
                 </tr>
                 </tbody>
             </table>
+
+
+            <h2 class="mt-5">End Session Endpoint</h2>
+
+            <div class="mb-3">
+                Endpoint: <code>{{ url_for('frontend.auth_logout', _external=True) }}</code><br>
+                Method: <code>GET</code> or <code>POST</code><br>
+            </div>
+
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Description</th>
+                    <th>Required?</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>id_token_hint</code></td>
+                    <td>Your JWT id_token</td>
+                    <td>required</td>
+                </tr>
+                <tr>
+                    <td><code>post_logout_redirect_uri</code></td>
+                    <td>
+                        Post Logout Redirect URI. One of the URIs registered with the client.
+                    </td>
+                    <td>required</td>
+                </tr>
+                <tr>
+                    <td><code>client_id</code></td>
+                    <td>Client ID of your app</td>
+                    <td>optional. If present must match the aud claim in the <code>id_token_hint</code></td>
+                </tr>
+                <tr>
+                    <td><code>state</code></td>
+                    <td>Random state value</td>
+                    <td>optional</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <p>
+                If successful, will redirect to the provided <code>post_logout_redirect_uri</code>
+                with the following query parameters.
+            </p>
+
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Description</th>
+                    <th>Present?</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>state</code></td>
+                    <td>The state passed to the End Session Endpoint</td>
+                    <td>present only if passed to the End Session Endpoint</td>
+                </tr>
+                </tbody>
+            </table>
+
         </div>
     </div>
 
