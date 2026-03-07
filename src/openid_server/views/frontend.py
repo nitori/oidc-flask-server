@@ -28,6 +28,7 @@ from openid_server.types import (
 from openid_server.models import KeyStore, AuthorizationCode, Client
 from openid_server.utils import until
 from openid_server.settings import settings
+from openid_server.security import decode_jwt
 
 app = Blueprint("frontend", __name__)
 
@@ -253,6 +254,35 @@ def auth_post():
     abort(400, "Invalid authorization step")
 
 
+@app.route("/auth/logout", methods=["GET", "POST"])
+def auth_logout():
+    data = request.args if request.method == "GET" else request.form
+    id_token_hint = data["id_token_hint"]
+    post_logout_redirect_uri = data["post_logout_redirect_uri"]
+    state = data.get("state")
+    client_id = data.get("client_id", None)
+
+    payload, client = decode_jwt(id_token_hint, aud=client_id)
+
+    if post_logout_redirect_uri not in client.post_logout_redirect_uris:
+        abort(404, "Invalid post_logout_redirect_uris")
+
+    logout_user()
+
+    if state:
+        url_parts = urlparse(post_logout_redirect_uri)
+        query = parse_qs(url_parts.query)
+        query["state"] = [state]
+
+        query_string = urlencode(query, doseq=True)
+        # noinspection PyTypeChecker
+        post_logout_redirect_uri: str = urlunparse(
+            url_parts._replace(query=query_string)
+        )
+
+    return redirect(post_logout_redirect_uri)
+
+
 @app.route("/.well-known/jwks.json")
 def well_known_jwks():
     keys = []
@@ -273,6 +303,7 @@ def openid_configuration():
         token_endpoint=url_for("api.token", _external=True),
         userinfo_endpoint=url_for("api.userinfo", _external=True),
         jwks_uri=url_for("frontend.well_known_jwks", _external=True),
+        end_session_endpoint=url_for("frontend.auth_logout", _external=True),
         response_modes_supported=[
             "query",
             "fragment",
