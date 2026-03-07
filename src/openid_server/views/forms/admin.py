@@ -7,8 +7,8 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Email
 
+from openid_server.types import KeyAlgorithm
 from .utils import strip_filter
-from openid_server.security import KeyAlgorithm
 
 
 class AdminEditUserForm(FlaskForm):

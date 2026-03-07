@@ -6,7 +6,8 @@ from email.mime.multipart import MIMEMultipart
 
 from flask import render_template
 
-from openid_server.settings import settings, MailSSLType
+from openid_server.settings import settings
+from openid_server.types import MailSSLType
 
 
 def send_email(to: str, subject: str, template: str, **context):

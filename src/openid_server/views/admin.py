@@ -4,8 +4,9 @@ from flask import Blueprint, render_template, abort, redirect, url_for, flash
 from flask_login import current_user
 
 from openid_server import db
+from openid_server.types import KeyAlgorithm
 from openid_server.models import User, KeyStore
-from openid_server.security import delete_uploaded_file, KeyAlgorithm, generate_key_pair
+from openid_server.security import delete_uploaded_file, generate_key_pair
 from openid_server.views.forms.admin import AdminEditUserForm, AdminCreateKey
 
 app = Blueprint("admin", __name__)

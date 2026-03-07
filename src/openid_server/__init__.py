@@ -13,12 +13,12 @@ from jinja2 import pass_eval_context
 from markupsafe import Markup, escape
 from loguru import logger
 
-from .security import KeyPair
-from .settings import settings
-from .utils import anonymize_ip
+from openid_server.types import KeyPair
+from openid_server.settings import settings
+from openid_server.utils import anonymize_ip
 
 if TYPE_CHECKING:
-    from .models import User, KeyStore
+    from openid_server.models import User, KeyStore
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -32,7 +32,7 @@ logger.add("var/logs/oidc-server.log", level="INFO", rotation="1 week", format=f
 
 @login_manager.user_loader
 def load_user(user_id) -> User | None:
-    from .models import User
+    from openid_server.models import User
 
     try:
         user_id = UUID(user_id)

@@ -8,12 +8,12 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
+from openid_server import db
 from openid_server.security import (
     generate_client_secret,
 )
 from openid_server.models import Client
 from openid_server.views.forms import ClientForm
-from openid_server import db
 
 app = Blueprint("client", __name__)
 

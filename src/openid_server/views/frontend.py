@@ -19,12 +19,11 @@ from flask_login import current_user, logout_user
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from markupsafe import escape
 
-from openid_server.security import KeyPair
+from openid_server import db
+from openid_server.types import KeyPair, CodeChallengeMethod
 from openid_server.models import KeyStore, AuthorizationCode, Client
 from openid_server.utils import until
 from openid_server.settings import settings
-from openid_server.security import CodeChallengeMethod
-from openid_server import db
 
 app = Blueprint("frontend", __name__)
 

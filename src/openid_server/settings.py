@@ -1,20 +1,14 @@
 import os
 import re
 from dataclasses import dataclass
-from enum import StrEnum
 
 from dotenv import load_dotenv
 
-from .paths import path
+from openid_server.paths import path
+from openid_server.types import MailSSLType
 
 load_dotenv(".env.local")
 load_dotenv(".env")
-
-
-class MailSSLType(StrEnum):
-    NONE = "NONE"
-    NATIVE = "NATIVE"
-    STARTTLS = "STARTTLS"
 
 
 @dataclass

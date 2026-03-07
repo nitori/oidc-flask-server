@@ -14,21 +14,20 @@ from flask_login import login_required, login_user, current_user, logout_user
 from jwt import InvalidTokenError
 from werkzeug.datastructures import FileStorage
 
+from openid_server import db
+from openid_server.types import KeyAlgorithm, UploadLocation, KeyPair
 from openid_server.security import (
     is_safe_url,
     move_uploaded_file,
     delete_uploaded_file,
-    UploadLocation,
     decode_jwt,
     generate_jwt,
     get_latest_keystore,
-    KeyAlgorithm,
 )
 from openid_server.models import User
-from openid_server.views.forms import UserForm, SignUpForm, LoginForm
 from openid_server.email import send_email
 from openid_server.settings import settings
-from openid_server import db, KeyPair
+from openid_server.views.forms import UserForm, SignUpForm, LoginForm
 
 app = Blueprint("user", __name__)
 

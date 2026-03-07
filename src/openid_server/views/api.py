@@ -5,12 +5,12 @@ import jwt
 from flask import Blueprint, jsonify, request, abort, url_for
 
 from openid_server import db
+from openid_server.types import KeyPair
 from openid_server.models import AuthorizationCode, User
 from openid_server.utils import now, auto_commit
 from openid_server.settings import settings
 from openid_server.security import (
     get_latest_keystore,
-    KeyPair,
     generate_jwt,
     decode_jwt,
     compute_at_hash,

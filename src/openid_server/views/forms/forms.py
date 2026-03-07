@@ -10,9 +10,9 @@ from wtforms.fields.choices import SelectField
 from wtforms.fields.simple import HiddenField
 from wtforms.validators import DataRequired, Email
 
-from .utils import strip_filter, TextAreaListField, WrappedFileField
-from openid_server.security import KeyAlgorithm
+from openid_server.types import KeyAlgorithm
 from openid_server.settings import settings
+from .utils import strip_filter, TextAreaListField, WrappedFileField
 
 
 class SignUpForm(FlaskForm):

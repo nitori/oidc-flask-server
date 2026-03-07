@@ -7,10 +7,10 @@ from sqlalchemy import ForeignKey, String, JSON
 from flask_login import UserMixin
 
 from openid_server import db
+from openid_server.types import KeyAlgorithm
 from openid_server.utils import now, until
 from openid_server.security import (
     pw_context,
-    KeyAlgorithm,
     generate_client_id,
     generate_client_secret,
 )
