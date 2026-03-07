@@ -4,6 +4,9 @@ import ipaddress
 
 
 def now() -> datetime:
+    """
+    Using UTC datetime objects, but converting them to naive objects so it behaves better with SQLite
+    """
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
@@ -19,7 +22,7 @@ def until(
         hours=hours,
         weeks=weeks,
     )
-    return datetime.now(timezone.utc).replace(tzinfo=None) + td
+    return now() + td
 
 
 def auto_commit(*, rollback=True):
