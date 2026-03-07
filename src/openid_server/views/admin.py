@@ -27,7 +27,7 @@ def index():
 
 @app.route("/user-management", endpoint="users")
 def user_management():
-    users = User.query.order_by(User.name.asc()).all()
+    users = User.query.order_by(User.is_admin.desc(), User.name.asc()).all()
     return render_template("admin/users.html", users=users)
 
 
