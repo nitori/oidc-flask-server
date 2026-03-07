@@ -86,6 +86,11 @@ class ClientForm(FlaskForm):
         render_kw={"autocomplete": "off"},
         description="One URI per line",
     )
+    post_logout_redirect_uris = TextAreaListField(
+        "Post Logout Redirect URIs",
+        render_kw={"autocomplete": "off"},
+        description="One URI per line",
+    )
 
 
 class UserForm(FlaskForm):

@@ -84,10 +84,19 @@
                             <label for="redirect-uris-{{ loop_index }}" class="form-label">Redirect URIs</label>
                             <textarea class="form-control" id="redirect-uris-{{ loop_index }}"
                                       readonly rows="{{ client.redirect_uris|length + 1 }}">
-                                        {%- for uri in client.redirect_uris -%}
-                                            {{ uri }}{% if not loop.last %}{{ "\n" }}{% endif %}
-                                        {%- endfor -%}
-                                    </textarea>
+                                {%- for uri in client.redirect_uris -%}
+                                    {{ uri }}{% if not loop.last %}{{ "\n" }}{% endif %}
+                                {%- endfor -%}
+                            </textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label for="post-logout-redirect-uris-{{ loop_index }}" class="form-label">Post Logout Redirect URIs</label>
+                            <textarea class="form-control" id="post-logout-redirect-uris-{{ loop_index }}"
+                                      readonly rows="{{ client.post_logout_redirect_uris|length + 1 }}">
+                                {%- for uri in client.post_logout_redirect_uris -%}
+                                    {{ uri }}{% if not loop.last %}{{ "\n" }}{% endif %}
+                                {%- endfor -%}
+                            </textarea>
                         </div>
                         <div class="d-flex justify-content-between">
                             <a href="{{ url_for('client.edit_app', client_id=client.client_id) }}"

@@ -35,6 +35,9 @@ def new_app():
         assert isinstance(client.redirect_uris, list), (
             "Redirect URIs was not converted to a list"
         )
+        assert isinstance(client.post_logout_redirect_uris, list), (
+            "Redirect URIs was not converted to a list"
+        )
 
         db.session.add(client)
         db.session.commit()
@@ -61,6 +64,9 @@ def edit_app(client_id: str):
     if form.validate_on_submit():
         form.populate_obj(client)
         assert isinstance(client.redirect_uris, list), (
+            "Redirect URIs was not converted to a list"
+        )
+        assert isinstance(client.post_logout_redirect_uris, list), (
             "Redirect URIs was not converted to a list"
         )
 

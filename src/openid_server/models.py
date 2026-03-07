@@ -73,6 +73,7 @@ class Client(db.Model):
     )
     client_secret: Mapped[str] = mapped_column(default=generate_client_secret)
     redirect_uris: Mapped[list[str]] = mapped_column(JSON, default=list)
+    post_logout_redirect_uris: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     name: Mapped[str] = mapped_column()
     is_public: Mapped[bool] = mapped_column(default=True)
