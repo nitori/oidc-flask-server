@@ -216,18 +216,20 @@ def move_uploaded_file(upload: FileStorage, location: UploadLocation):
     returns the path relative to: app.root_path / 'static'
     """
     filename = secure_filename(upload.filename)
-    static_relative_path = Path("uploads") / location.value / filename
-    static_relative_path = static_relative_path.with_stem(
-        f"{static_relative_path.stem}_{secrets.token_hex(8)}"
+    relative_upload_path = Path(location.value, filename)
+    relative_upload_path = relative_upload_path.with_stem(
+        f"{relative_upload_path.stem}_{secrets.token_hex(8)}"
     )
 
-    full_path = Path(current_app.root_path) / "static" / static_relative_path
+    upload_folder = Path(current_app.root_path) / current_app.config["UPLOAD_FOLDER"]
+    full_path = upload_folder / relative_upload_path
     full_path.parent.mkdir(parents=True, exist_ok=True)
 
     upload.save(full_path)
-    return str(static_relative_path).replace("\\", "/")
+    return str(relative_upload_path).replace("\\", "/")
 
 
-def delete_uploaded_file(static_relative_path: str):
-    full_path = Path(current_app.root_path) / "static" / static_relative_path
+def delete_uploaded_file(relative_upload_path: str):
+    upload_folder = Path(current_app.root_path) / current_app.config["UPLOAD_FOLDER"]
+    full_path = upload_folder / relative_upload_path
     full_path.unlink(missing_ok=True)

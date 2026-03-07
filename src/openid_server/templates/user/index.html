@@ -10,7 +10,7 @@
 
         <div>
             {% if current_user.picture %}
-                <img src="{{ url_for('static', filename=current_user.picture) }}"
+                <img src="{{ url_for('uploads', filename=current_user.picture) }}"
                      width="100" height="100" class="img-fit">
             {% endif %}
 

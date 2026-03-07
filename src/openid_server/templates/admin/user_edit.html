@@ -19,8 +19,8 @@
 
             {% if user.picture %}
                 <div class="d-flex flex-column gap-3">
-                    <a href="{{ url_for('static', filename=user.picture) }}" target="_blank">
-                        <img src="{{ url_for('static', filename=user.picture) }}"
+                    <a href="{{ url_for('uploads', filename=user.picture) }}" target="_blank">
+                        <img src="{{ url_for('uploads', filename=user.picture) }}"
                              width="100" alt="Profile picture of {{ user.name }}">
                     </a>
                     {{ inputs.render(form.delete_picture) }}

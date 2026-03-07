@@ -20,7 +20,7 @@
                 <tr>
                     <td class="align-middle p-0">
                         {% if user.picture %}
-                            <img src="{{ url_for('static', filename=user.picture) }}"
+                            <img src="{{ url_for('uploads', filename=user.picture) }}"
                                  width="50" height="50" alt="Profile picture of {{ user.name }}"
                                  class="img-fit">
                         {% endif %}

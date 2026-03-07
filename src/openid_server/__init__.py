@@ -4,8 +4,9 @@ import sys
 from typing import TYPE_CHECKING
 from datetime import timedelta
 from uuid import UUID
+from pathlib import Path
 
-from flask import Flask, render_template, session, request
+from flask import Flask, render_template, session, request, send_file, current_app
 from werkzeug.exceptions import HTTPException
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -51,6 +52,7 @@ def create_app() -> Flask:
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "None"
     app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["UPLOAD_FOLDER"] = os.environ["FLASK_UPLOAD_FOLDER"]
 
     app.config["RECAPTCHA_PUBLIC_KEY"] = settings.recaptcha_site
     app.config["RECAPTCHA_PRIVATE_KEY"] = settings.recaptcha_secret
@@ -88,6 +90,16 @@ def create_app() -> Flask:
         )
 
         return response
+
+    upload_url_path = os.environ["FLASK_UPLOAD_URL_PATH"]
+    upload_url_path = upload_url_path.rstrip("/") + "/"
+
+    @app.route(f"{upload_url_path}/<path:filename>", endpoint="uploads")
+    def _upload_router(filename: str):
+        upload_folder = current_app.config["UPLOAD_FOLDER"]
+        upload_folder = Path(current_app.root_path) / upload_folder
+        filename = filename.lstrip("/\\")
+        return send_file(upload_folder / filename)
 
     return app
 
