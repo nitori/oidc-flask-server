@@ -1,7 +1,5 @@
 from textwrap import dedent
 from datetime import datetime, timezone, timedelta
-from typing import NamedTuple
-from enum import StrEnum
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
 from flask import (
@@ -20,72 +18,18 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from markupsafe import escape
 
 from openid_server import db
-from openid_server.types import KeyPair, CodeChallengeMethod
+from openid_server.types import (
+    KeyPair,
+    CodeChallengeMethod,
+    ResponseType,
+    ResponseMode,
+    AuthParameters,
+)
 from openid_server.models import KeyStore, AuthorizationCode, Client
 from openid_server.utils import until
 from openid_server.settings import settings
 
 app = Blueprint("frontend", __name__)
-
-
-class ResponseType(StrEnum):
-    code = "code"
-
-
-class ResponseMode(StrEnum):
-    query = "query"
-    fragment = "fragment"
-    form_post = "form_post"
-
-
-class AuthParameters(NamedTuple):
-    client_id: str
-    response_type: ResponseType
-    response_mode: ResponseMode
-    code_challenge: str | None
-    code_challenge_method: CodeChallengeMethod
-    redirect_uri: str
-    scope: str
-    state: str
-    nonce: str | None
-
-    @classmethod
-    def from_str_params(cls, *params: str):
-        """
-        *params is a tuple of strings, no enums. So they need to be converted here
-        """
-        obj = cls(*params)
-        obj = obj._replace(
-            response_type=ResponseType(obj.response_type),
-            response_mode=ResponseMode(obj.response_mode),
-            code_challenge_method=CodeChallengeMethod(obj.code_challenge_method),
-        )
-        return obj
-
-    def basic_validate(self):
-        if not self.client_id:
-            raise ValueError("Empty client_id")
-        if not self.redirect_uri:
-            raise ValueError("Empty redirect_uri")
-        if not self.scope:
-            raise ValueError("Empty scope")
-        if not self.state:
-            raise ValueError("Empty state")
-        if self.response_mode == ResponseMode.fragment and not self.code_challenge:
-            raise ValueError(
-                "response_mode=fragment is requested but PKCE code_challenge is empty"
-            )
-        if (
-            self.code_challenge
-            and self.code_challenge_method.value != CodeChallengeMethod.S256
-        ):
-            raise ValueError("Invalid code_challenge_method. Only S256 is supported.")
-
-        rest_scopes = set(self.scope.split()) - {"openid", "email", "profile"}
-        if rest_scopes:
-            raise ValueError(
-                f"Invalid scopes: {rest_scopes}. Allowed: openid profile email"
-            )
 
 
 @app.route("/")
