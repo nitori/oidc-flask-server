@@ -131,6 +131,10 @@ def decode_jwt(jwt_string: str) -> tuple[dict, Client]: ...
 
 
 @overload
+def decode_jwt(jwt_string: str, *, aud: None) -> tuple[dict, Client]: ...
+
+
+@overload
 def decode_jwt(jwt_string: str, *, aud: str) -> tuple[dict, None]: ...
 
 

@@ -141,7 +141,8 @@ def make_redirect_uri(params: AuthParameters, query: dict[str, list[str]]) -> st
     else:
         parts = parts._replace(query=urlencode(base_query, doseq=True))
 
-    return urlunparse(parts)  # noqa
+    # noinspection PyTypeChecker
+    return urlunparse(parts)
 
 
 @app.route("/auth")
@@ -183,7 +184,8 @@ def auth():
             return error_and_redirect(
                 params, "login_required", "User is required to login"
             )
-        if not user_has_consented(client.client_id, params.scope.split()):  # noqa
+        # noinspection PyTypeChecker
+        if not user_has_consented(client.client_id, params.scope.split()):
             return error_and_redirect(
                 params, "consent_required", "User needs to consent to extended scope"
             )
@@ -192,10 +194,11 @@ def auth():
     if "login" in prompts:
         logout_user()
 
+    # noinspection PyTypeChecker
     if (
         current_user.is_authenticated
         and user_has_consented(
-            client.client_id,  # noqa
+            client.client_id,
             params.scope.split(),
         )
         and "consent" not in prompts
