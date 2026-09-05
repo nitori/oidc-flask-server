@@ -320,7 +320,7 @@ def openid_configuration():
             "exp",
             "iat",
             "iss",
-            "sub"
+            "sub",
             # email
             "email",
             "email_verified",
