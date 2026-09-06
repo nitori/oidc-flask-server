@@ -26,7 +26,7 @@ from openid_server.types import (
     AuthParameters,
 )
 from openid_server.models import KeyStore, AuthorizationCode, Client
-from openid_server.utils import until
+from openid_server.utils import until, redirect_uri_matches
 from openid_server.settings import settings
 from openid_server.security import decode_jwt
 
@@ -170,7 +170,9 @@ def auth():
     if client is None:
         abort(404, "No such client")
 
-    if params.redirect_uri not in client.redirect_uris:
+    if not any(
+        redirect_uri_matches(params.redirect_uri, uri) for uri in client.redirect_uris
+    ):
         abort(404, "Invalid redirect_uri")
 
     if client.is_public:
@@ -264,7 +266,10 @@ def auth_logout():
 
     payload, client = decode_jwt(id_token_hint, aud=client_id)
 
-    if post_logout_redirect_uri not in client.post_logout_redirect_uris:
+    if not any(
+        redirect_uri_matches(post_logout_redirect_uri, uri)
+        for uri in client.post_logout_redirect_uris
+    ):
         abort(404, "Invalid post_logout_redirect_uris")
 
     logout_user()

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone, timedelta
 from functools import wraps
+from urllib.parse import urlparse
 import ipaddress
 
 
@@ -97,3 +98,57 @@ def anonymize_ip(ip_str, mask_size):
     # Create a network with the given prefix and get the network address
     network = ipaddress.ip_network(f"{ip}/{prefix}", strict=False)
     return str(network.network_address)
+
+
+def is_loopback_host(host: str | None) -> bool:
+    """
+    Whether host is a loopback IP literal (127.0.0.1, ::1).
+
+    "localhost" deliberately does not count, since it may resolve to something
+    other than the loopback interface (see RFC 8252, section 8.3).
+    """
+    if not host:
+        return False
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def redirect_uri_matches(candidate: str, registered: str) -> bool:
+    """
+    Compare a requested redirect URI against a registered one.
+
+    Comparison is exact, except for loopback redirect URIs, where the port is
+    ignored: RFC 8252, section 7.3 requires the authorization server to allow
+    any port for those, because native apps grab an ephemeral port from the
+    operating system at request time. Everything else (scheme, host, path,
+    query, fragment) still has to match exactly.
+    """
+    if candidate == registered:
+        return True
+
+    try:
+        cand = urlparse(candidate)
+        reg = urlparse(registered)
+
+        if not is_loopback_host(reg.hostname) or cand.hostname != reg.hostname:
+            return False
+
+        # userinfo has no business being in a redirect URI, don't relax those
+        if cand.username or cand.password or reg.username or reg.password:
+            return False
+
+        # the port itself is what we relax, but it still has to be a valid one
+        # (accessing .port raises ValueError for garbage like ":-1" or ":http")
+        cand.port, reg.port
+
+        return (
+            cand.scheme == reg.scheme
+            and cand.path == reg.path
+            and cand.params == reg.params
+            and cand.query == reg.query
+            and cand.fragment == reg.fragment
+        )
+    except ValueError:
+        return False
