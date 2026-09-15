@@ -24,10 +24,15 @@ from openid_server.security import (
     generate_jwt,
     get_latest_keystore,
 )
-from openid_server.models import User
+from openid_server.models import User, SshPublicKey
 from openid_server.email import send_email
 from openid_server.settings import settings
-from openid_server.views.forms import UserForm, SignUpForm, LoginForm
+from openid_server.views.forms import (
+    UserForm,
+    SignUpForm,
+    LoginForm,
+    SshPublicKeyForm,
+)
 
 app = Blueprint("user", __name__)
 
@@ -92,6 +97,57 @@ def edit_user():
         return redirect(url_for("user.index", _anchor="overview-tab-pane"))
 
     return render_template("user/edit_user.html", form=form)
+
+
+@app.route("/ssh-keys", methods=["GET", "POST"])
+@login_required
+def ssh_keys():
+    user: User = current_user
+
+    form = SshPublicKeyForm()
+    if form.validate_on_submit():
+        parsed = form.parsed_key
+
+        duplicate = SshPublicKey.query.filter_by(
+            user_id=user.id, key_b64=parsed.key_b64
+        ).first()
+        if duplicate is not None:
+            flash(
+                f"This key is already registered as {duplicate.title!r}",
+                category="danger",
+            )
+            return render_template("user/ssh_keys.html", form=form)
+
+        key = SshPublicKey()
+        key.user = user
+        key.title = form.data["title"]
+        key.key_type = parsed.key_type
+        key.key_b64 = parsed.key_b64
+        key.fingerprint = parsed.fingerprint
+
+        db.session.add(key)
+        db.session.commit()
+        flash(f"SSH key {key.title!r} added", category="success")
+        return redirect(url_for("user.ssh_keys"))
+
+    return render_template("user/ssh_keys.html", form=form)
+
+
+@app.route("/ssh-keys/<uuid:key_id>/delete", methods=["POST"])
+@login_required
+def delete_ssh_key(key_id: UUID):
+    key: SshPublicKey | None = SshPublicKey.query.filter_by(id=key_id).first()
+    if key is None:
+        abort(404, "No such key")
+
+    if key.user != current_user:
+        abort(403)
+
+    db.session.delete(key)
+    db.session.commit()
+
+    flash(f"SSH key {key.title!r} deleted", category="success")
+    return redirect(url_for("user.ssh_keys"))
 
 
 @app.route("/change-password")

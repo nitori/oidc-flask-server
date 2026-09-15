@@ -24,6 +24,7 @@ from openid_server.types import (
     ResponseType,
     ResponseMode,
     AuthParameters,
+    SUPPORTED_SCOPES,
 )
 from openid_server.models import KeyStore, AuthorizationCode, Client
 from openid_server.utils import until, redirect_uri_matches
@@ -314,11 +315,7 @@ def openid_configuration():
             "fragment",
             "form_post",
         ],
-        scopes_supported=[
-            "openid",
-            "email",
-            "profile",
-        ],
+        scopes_supported=list(SUPPORTED_SCOPES),
         claims_supported=[
             # openid
             "aud",
@@ -334,6 +331,8 @@ def openid_configuration():
             "family_name",
             "given_name",
             "picture",
+            # ssh_publickeys
+            "ssh_publickeys",
         ],
         prompt_values_supported=[
             "none",

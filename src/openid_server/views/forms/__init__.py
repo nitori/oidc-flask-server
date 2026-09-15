@@ -3,4 +3,5 @@ from .forms import (
     UserForm as UserForm,
     SignUpForm as SignUpForm,
     LoginForm as LoginForm,
+    SshPublicKeyForm as SshPublicKeyForm,
 )

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% import "macros/inputs.html" as inputs %}
+
+{% block content %}
+    <div class="my-5">
+        <div class="d-flex justify-content-between">
+            <h1 class="mb-3">Your SSH Keys</h1>
+        </div>
+
+        <div class="form-text mb-4">
+            Apps requesting the <code>ssh_publickeys</code> scope receive these keys
+            (e.g. to sync them into a Git forge or to sign SSH certificates).
+        </div>
+
+        <div class="row flex-row-reverse justify-content-between">
+            <div class="col-12 col-lg-6 col-xl-5">
+                <h2 class="mb-4">Add a key</h2>
+                <form action="{{ url_for('user.ssh_keys') }}" method="post">
+                    {{ form.csrf_token }}
+                    {{ inputs.render(form.title) }}
+                    {{ inputs.render(form.key) }}
+                    <div>
+                        <button type="submit" class="btn btn-primary">Add key</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-12 col-lg-6 col-xl-6">
+                {% if not current_user.ssh_public_keys %}
+                    <p class="text-secondary">You have not added any SSH keys yet.</p>
+                {% endif %}
+                {% for key in current_user.ssh_public_keys %}
+                    <div id="ssh-key-{{ key.id }}" class="mb-4">
+                        <h4>{{ key.title }}</h4>
+                        <div class="font-monospace small text-break">{{ key.fingerprint }}</div>
+                        <div class="form-text">
+                            {{ key.key_type }} &middot; added {{ key.created.strftime("%Y-%m-%d") }}
+                        </div>
+                        <form action="{{ url_for('user.delete_ssh_key', key_id=key.id) }}"
+                              method="post" class="mt-2">
+                            <button class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </div>
+                    {% if not loop.last %}
+                        <hr class="mb-4">
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

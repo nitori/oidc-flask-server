@@ -1,13 +1,18 @@
 from typing import Self
 import base64
+import hashlib
 from typing import NamedTuple, TYPE_CHECKING
 from enum import StrEnum
 
+from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 
 if TYPE_CHECKING:
     from openid_server.models import KeyStore
+
+
+SUPPORTED_SCOPES = ("openid", "email", "profile", "ssh_publickeys")
 
 
 class MailSSLType(StrEnum):
@@ -186,8 +191,53 @@ class AuthParameters(NamedTuple):
         ):
             raise ValueError("Invalid code_challenge_method. Only S256 is supported.")
 
-        rest_scopes = set(self.scope.split()) - {"openid", "email", "profile"}
+        rest_scopes = set(self.scope.split()) - set(SUPPORTED_SCOPES)
         if rest_scopes:
             raise ValueError(
-                f"Invalid scopes: {rest_scopes}. Allowed: openid profile email"
+                f"Invalid scopes: {rest_scopes}. Allowed: {' '.join(SUPPORTED_SCOPES)}"
             )
+
+
+class ParsedSshPublicKey(NamedTuple):
+    """
+    A parsed and validated OpenSSH public key (authorized_keys format).
+    """
+
+    key_type: str
+    key_b64: str
+    comment: str
+
+    @property
+    def fingerprint(self) -> str:
+        """SHA256 fingerprint, formatted like ssh-keygen -l does"""
+        digest = hashlib.sha256(base64.b64decode(self.key_b64)).digest()
+        return "SHA256:" + base64.b64encode(digest).decode("ascii").rstrip("=")
+
+    @property
+    def key_line(self) -> str:
+        """The key in authorized_keys format, without a comment"""
+        return f"{self.key_type} {self.key_b64}"
+
+    @classmethod
+    def parse(cls, text: str) -> Self:
+        """
+        Parse and validate an OpenSSH public key line.
+        Raises ValueError when the text is not a valid public key.
+        """
+        parts = text.strip().split(None, 2)
+        if len(parts) < 2:
+            raise ValueError("Expected format: <key-type> <base64-key> [comment]")
+
+        key_type, key_b64 = parts[0], parts[1]
+        comment = parts[2].strip() if len(parts) == 3 else ""
+
+        try:
+            # this fails for corrupt base64 and when the key type
+            # inside the blob does not match key_type
+            serialization.load_ssh_public_key(f"{key_type} {key_b64}".encode("ascii"))
+        except UnsupportedAlgorithm:
+            raise ValueError(f"Unsupported key type: {key_type!r}")
+        except (ValueError, UnicodeEncodeError) as e:
+            raise ValueError(f"Invalid public key: {e}")
+
+        return cls(key_type=key_type, key_b64=key_b64, comment=comment)

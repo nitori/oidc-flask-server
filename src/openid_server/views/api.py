@@ -31,6 +31,34 @@ def api_error_handler(exc):
     ), exc.code
 
 
+# scopes that result in user claims in the id_token / userinfo response
+USER_CLAIM_SCOPES = frozenset({"email", "profile", "ssh_publickeys"})
+
+
+def build_user_claims(user: User, scopes: list[str]) -> dict[str, Any]:
+    """
+    Builds the user claims for both the id_token and the userinfo endpoint,
+    depending on the granted scopes.
+    """
+    claims: dict[str, Any] = {}
+    if "email" in scopes:
+        claims["email"] = user.email
+        claims["email_verified"] = user.email_verified
+    if "profile" in scopes:
+        claims["name"] = user.name
+        if user.family_name:
+            claims["family_name"] = user.family_name
+        if user.given_name:
+            claims["given_name"] = user.given_name
+        if user.picture:
+            claims["picture"] = url_for("static", filename=user.picture, _external=True)
+    if "ssh_publickeys" in scopes:
+        # always a list (possibly empty) of authorized_keys formatted lines,
+        # same as Kanidm does and what e.g. Gitea expects.
+        claims["ssh_publickeys"] = user.ssh_publickeys_claim
+    return claims
+
+
 @app.route("/")
 def index():
     return jsonify(foo="bar")
@@ -121,20 +149,7 @@ def token():
             expires_in=settings.token_lifetime_seconds,
         )
 
-    claims = {}
-    if "email" in scopes:
-        claims["email"] = auth_code.user.email
-        claims["email_verified"] = auth_code.user.email_verified
-    if "profile" in scopes:
-        claims["name"] = auth_code.user.name
-        if auth_code.user.family_name:
-            claims["family_name"] = auth_code.user.family_name
-        if auth_code.user.given_name:
-            claims["given_name"] = auth_code.user.given_name
-        if auth_code.user.picture:
-            claims["picture"] = url_for(
-                "static", filename=auth_code.user.picture, _external=True
-            )
+    claims = build_user_claims(auth_code.user, scopes)
 
     id_token = generate_jwt(
         kp,
@@ -178,7 +193,7 @@ def userinfo():
 
     scopes = payload.get("scope", "").split()
 
-    if "email" not in scopes and "profile" not in scopes:
+    if not set(scopes) & USER_CLAIM_SCOPES:
         abort(401)
 
     try:
@@ -191,20 +206,6 @@ def userinfo():
         abort(404, "No such user")
 
     user_info: dict[str, Any] = {"sub": str(user_id)}
-
-    if "email" in scopes:
-        user_info["email"] = user.email
-        user_info["email_verified"] = user.email_verified
-
-    if "profile" in scopes:
-        user_info["name"] = user.name
-        if user.family_name:
-            user_info["family_name"] = user.family_name
-        if user.given_name:
-            user_info["given_name"] = user.given_name
-        if user.picture:
-            user_info["picture"] = url_for(
-                "static", filename=user.picture, _external=True
-            )
+    user_info.update(build_user_claims(user, scopes))
 
     return jsonify(user_info)

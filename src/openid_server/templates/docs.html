@@ -39,9 +39,10 @@
                     <td><code>scope</code></td>
                     <td>
                         Space separated list of scopes. One or more of:
-                        <code>openid</code>, <code>email</code>, <code>profile</code><br>
+                        <code>openid</code>, <code>email</code>, <code>profile</code>,
+                        <code>ssh_publickeys</code><br>
                         Should include <code>openid</code> for OpenID Connect.
-                        <code>email</code> and <code>profile</code> are optional.
+                        <code>email</code>, <code>profile</code> and <code>ssh_publickeys</code> are optional.
                     </td>
                     <td>required</td>
                 </tr>
@@ -377,6 +378,16 @@
                     <td>Public URL to a profile picture</td>
                     <td>only if scope included <code>profile</code> and non-empty</td>
                 </tr>
+                <tr>
+                    <td><code>ssh_publickeys</code></td>
+                    <td>
+                        List of the users SSH public keys in <code>authorized_keys</code> format
+                        (<code>&lt;type&gt; &lt;base64&gt; &lt;title&gt;</code>). May be an empty list.
+                        Same claim as used by Kanidm; Gitea can be configured to sync SSH keys
+                        from it (SSH Public Key Claim Name).
+                    </td>
+                    <td>only if scope included <code>ssh_publickeys</code></td>
+                </tr>
                 </tbody>
             </table>
 
@@ -455,6 +466,16 @@
                     <td><code>picture</code></td>
                     <td>Public URL to a profile picture</td>
                     <td>only if scope included <code>profile</code> and non-empty</td>
+                </tr>
+                <tr>
+                    <td><code>ssh_publickeys</code></td>
+                    <td>
+                        List of the users SSH public keys in <code>authorized_keys</code> format
+                        (<code>&lt;type&gt; &lt;base64&gt; &lt;title&gt;</code>). May be an empty list.
+                        Same claim as used by Kanidm; Gitea can be configured to sync SSH keys
+                        from it (SSH Public Key Claim Name).
+                    </td>
+                    <td>only if scope included <code>ssh_publickeys</code></td>
                 </tr>
                 </tbody>
             </table>

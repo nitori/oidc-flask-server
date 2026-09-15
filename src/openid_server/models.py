@@ -3,7 +3,7 @@ import secrets
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, String, JSON
+from sqlalchemy import ForeignKey, String, JSON, UniqueConstraint
 from flask_login import UserMixin
 
 from openid_server import db
@@ -30,6 +30,19 @@ class User(db.Model, UserMixin):
 
     hashed_password: Mapped[str] = mapped_column(String(255))
     clients: Mapped[list[Client]] = relationship(back_populates="user")
+    ssh_public_keys: Mapped[list[SshPublicKey]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="SshPublicKey.created",
+    )
+
+    @property
+    def ssh_publickeys_claim(self) -> list[str]:
+        """
+        Value of the ``ssh_publickeys`` claim: authorized_keys formatted lines.
+        The key title is used as the comment.
+        """
+        return [key.authorized_key for key in self.ssh_public_keys]
 
     @property
     def password(self):
@@ -41,6 +54,31 @@ class User(db.Model, UserMixin):
 
     def verify_password(self, value: str) -> bool:
         return pw_context.verify(value, self.hashed_password)
+
+
+class SshPublicKey(db.Model):
+    """An OpenSSH public key of a user, exposed via the ``ssh_publickeys`` scope"""
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
+    user: Mapped[User] = relationship(back_populates="ssh_public_keys")
+    title: Mapped[str] = mapped_column()
+    # e.g. "ssh-ed25519"
+    key_type: Mapped[str] = mapped_column()
+    # the base64 blob (without key type and comment)
+    key_b64: Mapped[str] = mapped_column()
+    # "SHA256:..." as shown by ssh-keygen -l
+    fingerprint: Mapped[str] = mapped_column()
+    created: Mapped[datetime] = mapped_column(default=now)
+
+    __table_args__ = (UniqueConstraint("user_id", "key_b64"),)
+
+    @property
+    def authorized_key(self) -> str:
+        line = f"{self.key_type} {self.key_b64}"
+        if self.title:
+            line += f" {self.title}"
+        return line
 
 
 class AuthorizationCode(db.Model):

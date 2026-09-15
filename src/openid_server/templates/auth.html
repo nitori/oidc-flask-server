@@ -21,6 +21,9 @@
                 {% if 'email' in scopes %}
                     <li>Access your email address</li>
                 {% endif %}
+                {% if 'ssh_publickeys' in scopes %}
+                    <li>Access your SSH public keys</li>
+                {% endif %}
             </ul>
         </div>
         <hr class="my-5">

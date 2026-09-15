@@ -5,12 +5,13 @@ from wtforms import (
     BooleanField,
     EmailField,
     PasswordField,
+    TextAreaField,
 )
 from wtforms.fields.choices import SelectField
 from wtforms.fields.simple import HiddenField
-from wtforms.validators import DataRequired, Email
+from wtforms.validators import DataRequired, Email, Length, ValidationError
 
-from openid_server.types import KeyAlgorithm
+from openid_server.types import KeyAlgorithm, ParsedSshPublicKey
 from openid_server.settings import settings
 from .utils import strip_filter, TextAreaListField, WrappedFileField
 
@@ -120,6 +121,36 @@ class UserForm(FlaskForm):
             FileSize(1 << 19),  # 512 KiB
         ],
     )
+
+
+class SshPublicKeyForm(FlaskForm):
+    title = StringField(
+        "Title",
+        validators=[DataRequired(), Length(max=100)],
+        render_kw={"autocomplete": "off", "placeholder": "e.g. laptop"},
+        filters=[strip_filter],
+        description="A name to recognize the key by. Also used as the comment of the key.",
+    )
+    key = TextAreaField(
+        "Public key",
+        validators=[DataRequired()],
+        render_kw={
+            "autocomplete": "off",
+            "placeholder": "ssh-ed25519 AAAA...",
+            "spellcheck": "false",
+        },
+        filters=[strip_filter],
+        description=(
+            "OpenSSH public key, as found in ~/.ssh/id_ed25519.pub. "
+            "Any comment in the pasted key is replaced by the title."
+        ),
+    )
+
+    def validate_key(self, field: TextAreaField):
+        try:
+            self.parsed_key = ParsedSshPublicKey.parse(field.data)
+        except ValueError as e:
+            raise ValidationError(str(e))
 
 
 if settings.recaptcha_site:

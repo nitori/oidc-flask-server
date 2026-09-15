@@ -23,7 +23,12 @@
                     <span class="badge text-bg-danger">Not verified</span>
                 {% endif %}
             </h4>
+            <h4 class="mb-4">
+                SSH Keys:
+                <span class="badge text-bg-secondary">{{ current_user.ssh_public_keys|length }}</span>
+            </h4>
             <a class="btn btn-primary" href="{{ url_for('user.edit_user') }}">Edit your profile</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('user.ssh_keys') }}">Manage SSH keys</a>
         </div>
     </div>
 {% endblock %}
