@@ -1,4 +1,3 @@
-import hmac
 import re
 from typing import Any
 from urllib.parse import unquote_plus
@@ -179,9 +178,7 @@ def token():
         raise invalid_client("Invalid client credentials")
 
     if not client.is_public:
-        if client_secret is None or not hmac.compare_digest(
-            client.client_secret.encode(), client_secret.encode()
-        ):
+        if client_secret is None or not client.verify_secret(client_secret):
             raise invalid_client("Invalid client credentials")
 
     if not code:

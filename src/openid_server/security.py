@@ -76,6 +76,16 @@ def generate_client_secret():
     return secrets.token_urlsafe(32)
 
 
+# client secrets are 256 bit random values, so a fast hash is sufficient (unlike for
+# passwords). The prefix allows telling the scheme apart, should it ever change.
+CLIENT_SECRET_HASH_PREFIX = "sha256$"
+
+
+def hash_client_secret(secret: str) -> str:
+    digest = hashlib.sha256(secret.encode("utf-8")).hexdigest()
+    return f"{CLIENT_SECRET_HASH_PREFIX}{digest}"
+
+
 def get_client_from_db(client_id: str) -> Client | None:
     from .models import Client
 

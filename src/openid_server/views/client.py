@@ -5,23 +5,30 @@ from flask import (
     url_for,
     flash,
     abort,
+    session,
 )
 from flask_login import login_required, current_user
 
 from openid_server import db
-from openid_server.security import (
-    generate_client_secret,
-)
 from openid_server.models import Client
 from openid_server.views.forms import ClientForm
 
 app = Blueprint("client", __name__)
 
 
+def show_secret_once(client: Client, secret: str):
+    """
+    Only the hash of the secret is stored, so pass the clear text secret
+    to the next rendering of the app list, which will show it once.
+    """
+    session["new_client_secret"] = {"client_id": client.client_id, "secret": secret}
+
+
 @app.route("/")
 @login_required
 def index():
-    return render_template("app/index.html")
+    new_secret = session.pop("new_client_secret", None)
+    return render_template("app/index.html", new_secret=new_secret)
 
 
 @app.route("/new-app", methods=["GET", "POST"])
@@ -38,9 +45,13 @@ def new_app():
         assert isinstance(client.post_logout_redirect_uris, list), (
             "Redirect URIs was not converted to a list"
         )
+        secret = client.generate_secret()
 
         db.session.add(client)
         db.session.commit()
+
+        if not client.is_public:
+            show_secret_once(client, secret)
 
         return redirect(url_for("client.index", _anchor=f"client-{client.client_id}"))
 
@@ -70,12 +81,16 @@ def edit_app(client_id: str):
             "Redirect URIs was not converted to a list"
         )
 
+        secret = None
         if form.data["generate_new_secret_key"]:
-            client.client_secret = generate_client_secret()
+            secret = client.generate_secret()
             flash("New client secret generated!", category="warning")
 
         db.session.add(client)
         db.session.commit()
+
+        if secret is not None:
+            show_secret_once(client, secret)
         flash(
             f"Client {client.name!r} ({client.client_id}) updated!", category="success"
         )

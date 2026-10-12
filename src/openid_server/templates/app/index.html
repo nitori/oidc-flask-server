@@ -60,23 +60,30 @@
                                 </button>
                             </div>
                         </div>
-                        {% if not client.is_public %}
+                        {% if new_secret and new_secret.client_id == client.client_id %}
                             <div class="mb-4">
                                 <label for="client-secret-{{ loop_index }}" class="form-label">
                                     Client Secret
                                 </label>
                                 <div class="input-group">
-                                    <input type="password" readonly class="form-control"
+                                    <input type="text" readonly class="form-control"
                                            id="client-secret-{{ loop_index }}"
-                                           value="{{ client.client_secret }}">
-                                    <button class="btn btn-danger">
-                                        <i class="fa-sharp fa-fw fa-solid fa-eye d-none"></i>
-                                        <i class="fa-sharp fa-fw fa-solid fa-eye-slash"></i>
-                                    </button>
+                                           value="{{ new_secret.secret }}">
                                     <button class="btn btn-primary"
-                                            onclick="navigator.clipboard.writeText('{{ client.client_secret }}')">
+                                            onclick="navigator.clipboard.writeText('{{ new_secret.secret }}')">
                                         <i class="fa-sharp fa-fw fa-solid fa-copy"></i>
                                     </button>
+                                </div>
+                                <div class="form-text text-danger-emphasis">
+                                    Copy the secret now. It is only shown once and cannot be retrieved later.
+                                </div>
+                            </div>
+                        {% elif not client.is_public %}
+                            <div class="mb-4">
+                                <div class="form-label">Client Secret</div>
+                                <div class="form-text">
+                                    The secret is only shown once after it was generated.
+                                    If you lost it, generate a new one in the app settings.
                                 </div>
                             </div>
                         {% endif %}

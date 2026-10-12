@@ -1,4 +1,5 @@
 from datetime import datetime
+import hmac
 import secrets
 from uuid import UUID, uuid4
 
@@ -13,6 +14,7 @@ from openid_server.security import (
     pw_context,
     generate_client_id,
     generate_client_secret,
+    hash_client_secret,
 )
 
 
@@ -109,7 +111,7 @@ class Client(db.Model):
         primary_key=True,
         default=generate_client_id,
     )
-    client_secret: Mapped[str] = mapped_column(default=generate_client_secret)
+    hashed_client_secret: Mapped[str] = mapped_column()
     redirect_uris: Mapped[list[str]] = mapped_column(JSON, default=list)
     post_logout_redirect_uris: Mapped[list[str]] = mapped_column(JSON, default=list)
 
@@ -120,6 +122,20 @@ class Client(db.Model):
     # owner
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
     user: Mapped[User] = relationship(back_populates="clients")
+
+    def generate_secret(self) -> str:
+        """
+        Sets a new random client secret and returns it in clear text.
+        Only the hash is stored, so this is the only chance to show it.
+        """
+        secret = generate_client_secret()
+        self.hashed_client_secret = hash_client_secret(secret)
+        return secret
+
+    def verify_secret(self, secret: str) -> bool:
+        return hmac.compare_digest(
+            self.hashed_client_secret, hash_client_secret(secret)
+        )
 
 
 class KeyStore(db.Model):
