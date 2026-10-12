@@ -289,7 +289,11 @@ def auth_logout():
     ):
         abort(404, "Invalid post_logout_redirect_uris")
 
-    logout_user()
+    # only end the session of the user the id_token was issued to. otherwise
+    # anyone with a valid id_token could craft a link logging out other users.
+    # the RP's session is gone anyway, so just redirect back in that case.
+    if current_user.is_authenticated and str(current_user.id) == payload.get("sub"):
+        logout_user()
 
     if state:
         url_parts = urlparse(post_logout_redirect_uri)
