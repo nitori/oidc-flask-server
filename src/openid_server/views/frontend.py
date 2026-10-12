@@ -15,10 +15,12 @@ from flask import (
 )
 from flask_login import current_user, logout_user
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from jwt.exceptions import InvalidTokenError
 from markupsafe import escape
 
 from openid_server import db
 from openid_server.types import (
+    KeyAlgorithm,
     KeyPair,
     CodeChallengeMethod,
     ResponseType,
@@ -29,7 +31,7 @@ from openid_server.types import (
 from openid_server.models import KeyStore, AuthorizationCode, Client
 from openid_server.utils import until, redirect_uri_matches
 from openid_server.settings import settings
-from openid_server.security import decode_jwt
+from openid_server.security import decode_jwt, get_client_from_db
 
 app = Blueprint("frontend", __name__)
 
@@ -260,12 +262,26 @@ def auth_post():
 @app.route("/auth/logout", methods=["GET", "POST"])
 def auth_logout():
     data = request.args if request.method == "GET" else request.form
-    id_token_hint = data["id_token_hint"]
-    post_logout_redirect_uri = data["post_logout_redirect_uri"]
+    id_token_hint = data.get("id_token_hint")
+    post_logout_redirect_uri = data.get("post_logout_redirect_uri")
     state = data.get("state")
     client_id = data.get("client_id", None)
 
-    payload, client = decode_jwt(id_token_hint, aud=client_id)
+    if not id_token_hint:
+        abort(400, "Missing id_token_hint. It is required to identify the client.")
+    if not post_logout_redirect_uri:
+        abort(400, "Missing post_logout_redirect_uri")
+
+    # RP-Initiated Logout 1.0, section 2: expired id_tokens should be accepted.
+    # if given, client_id must match the audience.
+    try:
+        payload = decode_jwt(id_token_hint, aud=client_id, verify_exp=False)
+    except InvalidTokenError as exc:
+        abort(400, f"Invalid id_token_hint: {exc}")
+
+    client = get_client_from_db(payload["aud"])
+    if client is None:
+        abort(400, "Invalid id_token_hint: no such client")
 
     if not any(
         redirect_uri_matches(post_logout_redirect_uri, uri)
@@ -310,6 +326,15 @@ def openid_configuration():
         userinfo_endpoint=url_for("api.userinfo", _external=True),
         jwks_uri=url_for("frontend.well_known_jwks", _external=True),
         end_session_endpoint=url_for("frontend.auth_logout", _external=True),
+        response_types_supported=[rt.value for rt in ResponseType],
+        subject_types_supported=["public"],
+        id_token_signing_alg_values_supported=[alg.value for alg in KeyAlgorithm],
+        grant_types_supported=["authorization_code"],
+        token_endpoint_auth_methods_supported=[
+            "client_secret_basic",
+            "client_secret_post",
+            "none",
+        ],
         response_modes_supported=[
             "query",
             "fragment",

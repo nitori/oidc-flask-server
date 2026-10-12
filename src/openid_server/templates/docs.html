@@ -182,6 +182,13 @@
                 Method: <code>POST</code>
             </div>
 
+            <p>
+                Private clients authenticate either with HTTP Basic authentication
+                (<code>Authorization: Basic base64(client_id:client_secret)</code>, preferred) or by sending
+                <code>client_id</code> and <code>client_secret</code> as form parameters.
+                Public clients only send <code>client_id</code>.
+            </p>
+
             <table class="table table-bordered">
                 <thead>
                 <tr>
@@ -194,12 +201,15 @@
                 <tr>
                     <td><code>client_id</code></td>
                     <td>Client ID of your app</td>
-                    <td>required</td>
+                    <td>required, unless HTTP Basic authentication is used</td>
                 </tr>
                 <tr>
                     <td><code>client_secret</code></td>
                     <td>Client Secret of your app</td>
-                    <td>required for private clients. Do not use with public clients.</td>
+                    <td>
+                        required for private clients, unless HTTP Basic authentication is used.
+                        Do not use with public clients.
+                    </td>
                 </tr>
                 <tr>
                     <td><code>code</code></td>
@@ -340,8 +350,9 @@
                 <tr>
                     <td><code>at_hash</code></td>
                     <td>
-                        Access Token Hash. Left half of the sha256 hash of the <code>access_token</code>
-                        (mix-up attack)
+                        Access Token Hash. Left half of the hash of the <code>access_token</code>
+                        (mix-up attack). The hash algorithm depends on the <code>alg</code> of the
+                        <code>id_token</code>: sha256 for <code>RS256</code>, sha512 for <code>EdDSA</code>.
                     </td>
                     <td>always</td>
                 </tr>

@@ -190,7 +190,7 @@ def sign_up():
 @app.route("/verify-email/<jwt_key>")
 def verify_email(jwt_key: str):
     try:
-        payload, _ = decode_jwt(jwt_key, aud=settings.issuer)
+        payload = decode_jwt(jwt_key, aud=settings.issuer)
     except InvalidTokenError:
         abort(404, "Invalid/unknown key")
 

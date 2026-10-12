@@ -1,8 +1,11 @@
+import hmac
+import re
 from typing import Any
+from urllib.parse import unquote_plus
 from uuid import UUID
 
 import jwt
-from flask import Blueprint, jsonify, request, abort, url_for
+from flask import Blueprint, Response, jsonify, request, url_for
 
 from openid_server import db
 from openid_server.types import KeyPair
@@ -11,6 +14,7 @@ from openid_server.utils import now, auto_commit
 from openid_server.settings import settings
 from openid_server.security import (
     get_latest_keystore,
+    get_client_from_db,
     generate_jwt,
     decode_jwt,
     compute_at_hash,
@@ -20,15 +24,104 @@ from openid_server.security import (
 app = Blueprint("api", __name__)
 
 
+class OAuthError(Exception):
+    """
+    Error response as defined in RFC 6749 section 5.2 (and RFC 6750 section 3)
+    """
+
+    def __init__(
+        self,
+        error: str,
+        description: str | None = None,
+        *,
+        status: int = 400,
+        headers: dict[str, str] | None = None,
+    ):
+        super().__init__(error, description)
+        self.error = error
+        self.description = description
+        self.status = status
+        self.headers = headers or {}
+
+
+def no_store(response: Response) -> Response:
+    # RFC 6749 section 5.1: token responses contain credentials
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+@app.errorhandler(OAuthError)
+def oauth_error_handler(exc: OAuthError):
+    body = {"error": exc.error}
+    if exc.description:
+        body["error_description"] = exc.description
+    response = no_store(jsonify(body))
+    response.status_code = exc.status
+    response.headers.update(exc.headers)
+    return response
+
+
+# map remaining (e.g. abort()) errors to the OAuth error format as well,
+# as clients detect failures by the "error" member.
+HTTP_STATUS_ERRORS = {
+    400: "invalid_request",
+    401: "invalid_client",
+    403: "access_denied",
+    404: "not_found",
+    500: "server_error",
+}
+
+
+@app.errorhandler(500)
 @app.errorhandler(404)
 @app.errorhandler(403)
 @app.errorhandler(401)
 @app.errorhandler(400)
 def api_error_handler(exc):
-    return jsonify(
-        error_code=exc.code,
-        message=exc.description,
-    ), exc.code
+    return oauth_error_handler(
+        OAuthError(HTTP_STATUS_ERRORS[exc.code], exc.description, status=exc.code)
+    )
+
+
+def invalid_client(description: str) -> OAuthError:
+    return OAuthError(
+        "invalid_client",
+        description,
+        status=401,
+        headers={"WWW-Authenticate": 'Basic realm="token"'},
+    )
+
+
+def bearer_error(error: str, description: str, *, status: int) -> OAuthError:
+    # RFC 6750 section 3: error_description must only use these characters
+    description = re.sub(r"[^\x20-\x21\x23-\x5b\x5d-\x7e]", "", description)
+    return OAuthError(
+        error,
+        description,
+        status=status,
+        headers={
+            "WWW-Authenticate": f'Bearer error="{error}", error_description="{description}"'
+        },
+    )
+
+
+def get_client_credentials() -> tuple[str | None, str | None]:
+    """
+    Returns client_id and client_secret, from either the Authorization header
+    (client_secret_basic) or the form body (client_secret_post / none).
+    """
+    form_client_id = request.form.get("client_id") or None
+    auth = request.authorization
+    if auth is not None and auth.type == "basic":
+        # RFC 6749 section 2.3.1: values are form-urlencoded before base64 encoding
+        client_id = unquote_plus(auth.username or "")
+        client_secret = unquote_plus(auth.password or "")
+        if form_client_id is not None and form_client_id != client_id:
+            raise OAuthError("invalid_request", "client_id mismatch")
+        return client_id or None, client_secret or None
+
+    return form_client_id, request.form.get("client_secret") or None
 
 
 # scopes that result in user claims in the id_token / userinfo response
@@ -64,65 +157,68 @@ def index():
     return jsonify(foo="bar")
 
 
-@app.route("/token", methods=["GET", "POST"])
+@app.route("/token", methods=["POST"])
 @auto_commit(rollback=False)
 def token():
-    client_id = request.form["client_id"]
-    client_secret = request.form.get("client_secret", None)
-    code = request.form["code"]
-    grant_type = request.form["grant_type"]
-    redirect_uri = request.form["redirect_uri"]
-    code_verifier = request.form.get("code_verifier", None)
+    grant_type = request.form.get("grant_type")
+    code = request.form.get("code")
+    redirect_uri = request.form.get("redirect_uri")
+    code_verifier = request.form.get("code_verifier") or None
 
+    if not grant_type:
+        raise OAuthError("invalid_request", "Missing grant_type")
     if grant_type != "authorization_code":
-        abort(400)
+        raise OAuthError("unsupported_grant_type")
+
+    client_id, client_secret = get_client_credentials()
+    if client_id is None:
+        raise invalid_client("Missing client credentials")
+
+    client = get_client_from_db(client_id)
+    if client is None:
+        raise invalid_client("Invalid client credentials")
+
+    if not client.is_public:
+        if client_secret is None or not hmac.compare_digest(
+            client.client_secret.encode(), client_secret.encode()
+        ):
+            raise invalid_client("Invalid client credentials")
+
+    if not code:
+        raise OAuthError("invalid_request", "Missing code")
+    if not redirect_uri:
+        raise OAuthError("invalid_request", "Missing redirect_uri")
 
     auth_code: AuthorizationCode = AuthorizationCode.query.filter(
         AuthorizationCode.code == code
     ).first()
     if auth_code is None:
-        abort(404, "no such code")
+        raise OAuthError("invalid_grant", "Unknown, expired or already used code")
 
-    if auth_code.client is None:
-        # invalid, client probably deleted.
-        db.session.delete(auth_code)
-        abort(404, "no associated client")
-
-    if auth_code.client.client_id != client_id:
-        abort(404, "invalid client credentials")
-
-    if auth_code.client.is_public:
-        pass
-    else:
-        if auth_code.client.client_secret != client_secret:
-            abort(404, "invalid client credentials")
+    if auth_code.client_id != client.client_id:
+        raise OAuthError("invalid_grant", "Code was issued to another client")
 
     if auth_code.redirect_uri != redirect_uri:
-        abort(404, "wrong redirect_uri")
+        raise OAuthError("invalid_grant", "redirect_uri mismatch")
 
     if auth_code.expires < now():
         # expired, can be safely deleted.
         db.session.delete(auth_code)
-        abort(404, "expired")
+        raise OAuthError("invalid_grant", "Unknown, expired or already used code")
 
     if auth_code.user is None or not auth_code.user.is_active:
         # user has been deleted or deactivated/blocked.
         db.session.delete(auth_code)
-        abort(404, "no related user or user is inactive")
+        raise OAuthError("invalid_grant", "No related user or user is inactive")
 
-    require_pkce = auth_code.client.is_public
-
-    if require_pkce:
-        if not auth_code.code_challenge:
-            abort(400, "Missing code_challenge in auth_code. This should not happen.")
-        if not code_verifier:
-            abort(400, "Missing code_verifier")
-        if not verify_pkce_code_challenge(code_verifier, auth_code.code_challenge):  # noqa
-            abort(401, "PKCE code challenge failed")
-    else:
-        if code_verifier:
-            if not verify_pkce_code_challenge(code_verifier, auth_code.code_challenge):  # noqa
-                abort(401, "PKCE code challenge failed")
+    if auth_code.code_challenge:
+        if not code_verifier or not verify_pkce_code_challenge(
+            code_verifier, auth_code.code_challenge
+        ):
+            raise OAuthError("invalid_grant", "PKCE verification failed")
+    elif code_verifier or client.is_public:
+        # public clients always need PKCE, which the auth endpoint enforces.
+        raise OAuthError("invalid_grant", "PKCE verification failed")
 
     # generate access_token and optionally id_token
     ks = get_latest_keystore(auth_code.client.preferred_algorithm)
@@ -143,10 +239,12 @@ def token():
         db.session.delete(auth_code)
         # no id_token requested.
         # @TODO: add refresh_token and the necessary endpoints for that.
-        return jsonify(
-            access_token=access_token,
-            token_type="Bearer",
-            expires_in=settings.token_lifetime_seconds,
+        return no_store(
+            jsonify(
+                access_token=access_token,
+                token_type="Bearer",
+                expires_in=settings.token_lifetime_seconds,
+            )
         )
 
     claims = build_user_claims(auth_code.user, scopes)
@@ -158,17 +256,19 @@ def token():
         audience=str(auth_code.client_id),
         expires_in=settings.token_lifetime_seconds,
         auth_time=int(auth_code.auth_time.timestamp()),
-        at_hash=compute_at_hash(access_token),
+        at_hash=compute_at_hash(access_token, kp.alg),
         nonce=auth_code.nonce,  # noqa
         **claims,
     )
 
     db.session.delete(auth_code)
-    return jsonify(
-        id_token=id_token,
-        access_token=access_token,
-        token_type="Bearer",
-        expires_in=settings.token_lifetime_seconds,
+    return no_store(
+        jsonify(
+            id_token=id_token,
+            access_token=access_token,
+            token_type="Bearer",
+            expires_in=settings.token_lifetime_seconds,
+        )
     )
 
 
@@ -176,34 +276,48 @@ def token():
 def userinfo():
     auth_header = request.headers.get("Authorization", None)
     if auth_header is None:
-        abort(401, "Missing Authorization header")
+        # RFC 6750 section 3.1: no error code if no authentication was attempted
+        raise OAuthError(
+            "invalid_request",
+            "Missing Authorization header",
+            status=401,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     try:
         token_type, token_string = auth_header.split()
     except ValueError:
-        abort(400, "Malformed Authorization header")
+        raise bearer_error(
+            "invalid_request", "Malformed Authorization header", status=400
+        )
 
     if token_type.lower() != "bearer":
-        abort(400, "Only Bearer tokens are supported")
+        raise bearer_error(
+            "invalid_request", "Only Bearer tokens are supported", status=400
+        )
 
     try:
-        payload, client = decode_jwt(token_string)
+        payload = decode_jwt(token_string)
     except jwt.exceptions.InvalidTokenError as e:
-        abort(401, f"Invalid token: {e}")
+        raise bearer_error("invalid_token", f"Invalid token: {e}", status=401)
 
     scopes = payload.get("scope", "").split()
 
-    if not set(scopes) & USER_CLAIM_SCOPES:
-        abort(401)
+    if "openid" not in scopes and not set(scopes) & USER_CLAIM_SCOPES:
+        raise bearer_error(
+            "insufficient_scope", "Token has no openid or user claim scope", status=403
+        )
 
     try:
         user_id = UUID(payload["sub"])
     except (KeyError, TypeError, ValueError):
-        abort(400, "Missing or invalid sub claim")
+        raise bearer_error("invalid_token", "Missing or invalid sub claim", status=401)
 
     user: User | None = User.query.filter_by(id=user_id).first()
-    if user is None:
-        abort(404, "No such user")
+    if user is None or not user.is_active:
+        raise bearer_error(
+            "invalid_token", "No related user or user is inactive", status=401
+        )
 
     user_info: dict[str, Any] = {"sub": str(user_id)}
     user_info.update(build_user_claims(user, scopes))

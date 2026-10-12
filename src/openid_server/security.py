@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import overload
 import base64
 import time
 import secrets
@@ -126,19 +125,15 @@ def generate_jwt(
     return jwt.encode(payload, kp.sec, algorithm=kp.alg, headers={"kid": kp.kid})
 
 
-@overload
-def decode_jwt(jwt_string: str) -> tuple[dict, Client]: ...
+def decode_jwt(
+    jwt_string: str, *, aud: str | None = None, verify_exp: bool = True
+) -> dict:
+    """
+    Verifies the JWT and returns its payload.
 
-
-@overload
-def decode_jwt(jwt_string: str, *, aud: None) -> tuple[dict, Client]: ...
-
-
-@overload
-def decode_jwt(jwt_string: str, *, aud: str) -> tuple[dict, None]: ...
-
-
-def decode_jwt(jwt_string, *, aud=None):
+    Without `aud`, the audience is taken from the token itself and must be the
+    client_id of an existing client.
+    """
     try:
         header = jwt.get_unverified_header(jwt_string)
         kid = header["kid"]
@@ -149,7 +144,6 @@ def decode_jwt(jwt_string, *, aud=None):
     if not keypair:
         raise InvalidTokenError("Unknown Key ID")
 
-    client = None
     if aud is None:
         # just extract the payload to quickly get the audience (client_id).
         unverified_payload = jwt.decode(
@@ -162,24 +156,31 @@ def decode_jwt(jwt_string, *, aud=None):
         if not isinstance(aud, str):
             raise InvalidTokenError("Invalid or missing audience claim")
 
-        client = get_client_from_db(aud)
-        if client is None:
+        if get_client_from_db(aud) is None:
             raise InvalidTokenError("Invalid audience claim. No such client.")
 
-    payload = jwt.decode(
+    return jwt.decode(
         jwt_string,
         keypair.pub,
-        options={"strict_aud": True},  # only str allowed for audience, not list[str]
+        options={
+            "strict_aud": True,  # only str allowed for audience, not list[str]
+            "verify_exp": verify_exp,
+        },
         issuer=settings.issuer,
         audience=aud,
         algorithms=[keypair.alg],
     )
 
-    return payload, client
+
+# OIDC Core 3.1.3.6: at_hash uses the hash algorithm of the id_token's alg
+AT_HASH_ALGORITHMS = {
+    KeyAlgorithm.RS256: hashlib.sha256,
+    KeyAlgorithm.EdDSA: hashlib.sha512,  # Ed25519
+}
 
 
-def compute_at_hash(access_token: str) -> str:
-    hash_obj = hashlib.sha512(access_token.encode("ascii"))
+def compute_at_hash(access_token: str, alg: KeyAlgorithm) -> str:
+    hash_obj = AT_HASH_ALGORITHMS[alg](access_token.encode("ascii"))
     digest = hash_obj.digest()
     half_digest = digest[: len(digest) // 2]
     return base64.urlsafe_b64encode(half_digest).decode("ascii").rstrip("=")
