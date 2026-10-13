@@ -228,7 +228,7 @@ def verify_pkce_code_challenge(code_verifier: str, code_challenge: str) -> bool:
 
 def move_uploaded_file(upload: FileStorage, location: UploadLocation):
     """
-    returns the path relative to: app.root_path / 'static'
+    returns the path relative to: app.root_path / UPLOAD_FOLDER
     """
     filename = secure_filename(upload.filename)
     relative_upload_path = Path(location.value, filename)

@@ -143,7 +143,7 @@ def build_user_claims(user: User, scopes: list[str]) -> dict[str, Any]:
         if user.given_name:
             claims["given_name"] = user.given_name
         if user.picture:
-            claims["picture"] = url_for("static", filename=user.picture, _external=True)
+            claims["picture"] = url_for("uploads", filename=user.picture, _external=True)
     if "ssh_publickeys" in scopes:
         # always a list (possibly empty) of authorized_keys formatted lines,
         # same as Kanidm does and what e.g. Gitea expects.
