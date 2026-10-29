@@ -27,3 +27,20 @@
 .img-fit {
     object-fit: contain;
 }
+
+.app-details > summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.app-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.app-details-icon {
+    transition: transform 0.2s;
+}
+
+.app-details[open] > summary .app-details-icon {
+    transform: rotate(180deg);
+}
