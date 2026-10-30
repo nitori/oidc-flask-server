@@ -13,6 +13,7 @@ from wtforms.validators import DataRequired, Email, Length, ValidationError
 
 from openid_server.types import KeyAlgorithm, ParsedSshPublicKey
 from openid_server.settings import settings
+from openid_server.utils import is_allowed_redirect_uri
 from .utils import strip_filter, TextAreaListField, WrappedFileField
 
 
@@ -92,6 +93,21 @@ class ClientForm(FlaskForm):
         render_kw={"autocomplete": "off"},
         description="One URI per line",
     )
+
+    def validate_redirect_uris(self, field: TextAreaListField):
+        validate_redirect_uri_list(field.data)
+
+    def validate_post_logout_redirect_uris(self, field: TextAreaListField):
+        validate_redirect_uri_list(field.data)
+
+
+def validate_redirect_uri_list(uris: list[str]):
+    invalid = [uri for uri in uris if not is_allowed_redirect_uri(uri)]
+    if invalid:
+        raise ValidationError(
+            f"Invalid URI(s): {', '.join(invalid)}. Only https:// URIs are allowed, "
+            "and http:// only for loopback IPs (127.0.0.1, [::1])."
+        )
 
 
 class UserForm(FlaskForm):

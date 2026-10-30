@@ -115,6 +115,32 @@ def is_loopback_host(host: str | None) -> bool:
         return False
 
 
+def is_allowed_redirect_uri(uri: str) -> bool:
+    """
+    Whether uri may be registered/used as a (post logout) redirect URI.
+
+    Only https:// is allowed, plus http:// for loopback IP literals (RFC 8252,
+    section 7.3). Anything else (javascript:, data:, custom schemes, ...) is refused.
+    """
+    try:
+        parts = urlparse(uri)
+        # accessing .port raises ValueError for invalid ports
+        parts.port
+    except ValueError:
+        return False
+
+    if not parts.hostname:
+        return False
+    if parts.username or parts.password:
+        return False
+
+    if parts.scheme == "https":
+        return True
+    if parts.scheme == "http":
+        return is_loopback_host(parts.hostname)
+    return False
+
+
 def redirect_uri_matches(candidate: str, registered: str) -> bool:
     """
     Compare a requested redirect URI against a registered one.

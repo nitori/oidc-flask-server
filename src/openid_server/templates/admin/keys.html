@@ -28,6 +28,7 @@
                     </td>
                     <td>
                         <form action="{{ url_for('admin.key_delete', key_id=key.id) }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger">
                                 <i class="fa-sharp fa-fw fa-solid fa-trash-can"></i>
                             </button>

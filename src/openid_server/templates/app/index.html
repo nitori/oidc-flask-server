@@ -125,6 +125,7 @@
                                 </a>
                                 <form action="{{ url_for('client.delete_app', client_id=client.client_id) }}"
                                       method="post">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button class="btn btn-danger">
                                         Delete App
                                     </button>

@@ -29,7 +29,11 @@ from openid_server.types import (
     SUPPORTED_SCOPES,
 )
 from openid_server.models import KeyStore, AuthorizationCode, Client
-from openid_server.utils import until, redirect_uri_matches
+from openid_server.utils import (
+    until,
+    redirect_uri_matches,
+    is_allowed_redirect_uri,
+)
 from openid_server.settings import settings
 from openid_server.security import decode_jwt, get_client_from_db
 
@@ -178,6 +182,10 @@ def auth():
     ):
         abort(404, "Invalid redirect_uri")
 
+    # in case it was registered before the scheme restrictions were in place.
+    if not is_allowed_redirect_uri(params.redirect_uri):
+        abort(400, "Invalid redirect_uri: only https:// (or http:// for loopback)")
+
     if client.is_public:
         if not params.code_challenge:
             abort(400, "Public clients MUST use PKCE. code_challenge is missing.")
@@ -288,6 +296,12 @@ def auth_logout():
         for uri in client.post_logout_redirect_uris
     ):
         abort(404, "Invalid post_logout_redirect_uris")
+
+    if not is_allowed_redirect_uri(post_logout_redirect_uri):
+        abort(
+            400,
+            "Invalid post_logout_redirect_uri: only https:// (or http:// for loopback)",
+        )
 
     # only end the session of the user the id_token was issued to. otherwise
     # anyone with a valid id_token could craft a link logging out other users.

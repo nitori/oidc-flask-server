@@ -39,6 +39,7 @@
                         </div>
                         <form action="{{ url_for('user.delete_ssh_key', key_id=key.id) }}"
                               method="post" class="mt-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button class="btn btn-sm btn-danger">Delete</button>
                         </form>
                     </div>

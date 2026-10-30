@@ -6,10 +6,18 @@ from datetime import timedelta
 from uuid import UUID
 from pathlib import Path
 
-from flask import Flask, render_template, session, request, send_file, current_app
+from flask import (
+    Flask,
+    render_template,
+    session,
+    request,
+    send_from_directory,
+    current_app,
+)
 from werkzeug.exceptions import HTTPException
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
 from jinja2 import pass_eval_context
 from markupsafe import Markup, escape
 from loguru import logger
@@ -24,6 +32,7 @@ if TYPE_CHECKING:
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = "user.login"
+csrf = CSRFProtect()
 
 fmt = "[{time}] - {name} - {level} - {message}"
 logger.remove()
@@ -50,8 +59,14 @@ def create_app() -> Flask:
     app.config["TRUSTED_HOSTS"] = os.environ["FLASK_TRUSTED_HOSTS"].split()
     app.config["PREFERRED_URL_SCHEME"] = os.environ["FLASK_PREFERRED_URL_SCHEME"]
     app.config["SESSION_COOKIE_HTTPONLY"] = True
-    app.config["SESSION_COOKIE_SAMESITE"] = "None"
+    # Lax still sends the cookies on top-level GET navigations (/auth, /auth/logout)
+    # but not on cross-site POSTs and subrequests.
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = True
+    # flask-login's remember cookie restores the login on its own, so it needs the same
+    app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
+    app.config["REMEMBER_COOKIE_SECURE"] = True
+    app.config["REMEMBER_COOKIE_HTTPONLY"] = True
     app.config["UPLOAD_FOLDER"] = os.environ["FLASK_UPLOAD_FOLDER"]
 
     app.config["RECAPTCHA_PUBLIC_KEY"] = settings.recaptcha_site
@@ -70,6 +85,7 @@ def create_app() -> Flask:
     # setup extensions
     configure_database(app)
     setup_login_manager(app)
+    setup_csrf(app)
     setup_cors(app)
 
     @app.after_request
@@ -98,8 +114,8 @@ def create_app() -> Flask:
     def _upload_router(filename: str):
         upload_folder = current_app.config["UPLOAD_FOLDER"]
         upload_folder = Path(current_app.root_path) / upload_folder
-        filename = filename.lstrip("/\\")
-        return send_file(upload_folder / filename)
+        # send_from_directory refuses paths escaping the upload folder (e.g. "../")
+        return send_from_directory(upload_folder, filename)
 
     return app
 
@@ -149,22 +165,38 @@ def setup_login_manager(app: Flask):
     login_manager.init_app(app)
 
 
+def setup_csrf(app: Flask):
+    from . import views
+    from .views.frontend import auth_logout
+
+    csrf.init_app(app)
+    # the API is used by clients (not browsers with our session), authenticated
+    # by client credentials or bearer tokens.
+    csrf.exempt(views.api_app)
+    # RPs may POST to the end_session_endpoint (RP-Initiated Logout 1.0, section 2),
+    # they cannot know our CSRF token. The id_token_hint is checked instead.
+    csrf.exempt(auth_logout)
+
+
 def setup_cors(app: Flask):
-    """AI generated"""
+    """
+    CORS is only needed for endpoints browser based RPs (e.g. SPAs on other origins)
+    call directly. Those don't rely on cookies, so any origin may use them, but
+    without credentials. Everything else (the UI) is same-origin only.
+    """
+
+    def needs_cors() -> bool:
+        return request.blueprint == "api" or request.path.startswith("/.well-known/")
 
     @app.after_request
     def add_cors_headers(response):
-        origin = request.headers.get("Origin")
-        if origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Vary"] = "Origin"
-        else:
-            response.headers["Access-Control-Allow-Origin"] = "*"
+        if not needs_cors():
+            return response
 
+        response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-        response.headers["Access-Control-Expose-Headers"] = "Authorization"
+        response.headers["Access-Control-Expose-Headers"] = "WWW-Authenticate"
         return response
 
 

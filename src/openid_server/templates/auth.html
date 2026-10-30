@@ -29,6 +29,7 @@
         <hr class="my-5">
 
         <form action="{{ url_for('frontend.auth_post') }}" class="d-flex justify-content-between" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="params" value="{{ signed_params }}">
             <button class="btn btn-secondary" name="action" value="deny">Deny</button>
             <button class="btn btn-success" name="action" value="authorize">Authorize</button>
