@@ -37,7 +37,13 @@ csrf = CSRFProtect()
 fmt = "[{time}] - {name} - {level} - {message}"
 logger.remove()
 logger.add(sys.stderr, level="WARNING", format=fmt)
-logger.add("var/logs/oidc-server.log", level="INFO", rotation="1 week", format=fmt)
+log_dir = Path("var/logs")
+log_dir.mkdir(parents=True, exist_ok=True)
+# In case the var dir ends up served by Apache (e.g. to serve the uploads directly).
+htaccess = log_dir / ".htaccess"
+if not htaccess.exists():
+    htaccess.write_text("Require all denied\n")
+logger.add(log_dir / "oidc-server.log", level="INFO", rotation="1 week", format=fmt)
 
 
 @login_manager.user_loader
