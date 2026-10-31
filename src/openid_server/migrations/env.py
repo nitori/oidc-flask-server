@@ -4,6 +4,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+from alembic.script import ScriptDirectory
 
 from openid_server.settings import settings
 from openid_server import create_app, db
@@ -35,6 +36,21 @@ target_metadata = db.Model.metadata
 # ... etc.
 
 
+def process_revision_directives(context, revision, directives) -> None:
+    """
+    Give new revisions a sequential 4 digit id (0001, 0002, ...), so the files
+    are in order. Requires revision_environment = true in alembic.ini, otherwise
+    this isn't called for "alembic revision" without --autogenerate.
+    An explicit --rev-id is kept as is.
+    """
+    if config.cmd_opts is not None and getattr(config.cmd_opts, "rev_id", None):
+        return
+
+    script = ScriptDirectory.from_config(config)
+    next_number = len(list(script.walk_revisions())) + 1
+    directives[0].rev_id = f"{next_number:04d}"
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -54,6 +70,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         render_as_batch=True,  # in case you use sqlite.
+        process_revision_directives=process_revision_directives,
     )
 
     with context.begin_transaction():
@@ -74,7 +91,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            process_revision_directives=process_revision_directives,
+        )
 
         with context.begin_transaction():
             context.run_migrations()
