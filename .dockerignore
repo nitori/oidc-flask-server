@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.claude
+.env*
+.venv
+.venv-*
+**/__pycache__
+**/*.py[oc]
+src/openid_server/static/uploads
+instance
+uploads
+var
+Dockerfile
