@@ -11,6 +11,7 @@ from flask_login import login_required, current_user
 
 from openid_server import db
 from openid_server.models import Client
+from openid_server.types import Permission
 from openid_server.views.forms import ClientForm
 
 app = Blueprint("client", __name__)
@@ -34,6 +35,9 @@ def index():
 @app.route("/new-app", methods=["GET", "POST"])
 @login_required
 def new_app():
+    if not current_user.has_permission(Permission.create_apps):
+        abort(403, "You are not allowed to create apps.")
+
     form = ClientForm()
     if form.validate_on_submit():
         client = Client()

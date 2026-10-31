@@ -40,6 +40,7 @@ def user_edit(user_id: UUID):
         user.email = form.data["email"]
         user.family_name = form.data["family_name"]
         user.given_name = form.data["given_name"]
+        user.permissions = form.data["permissions"]
         if form.data["delete_picture"]:
             delete_uploaded_file(str(user.picture))
             user.picture = ""

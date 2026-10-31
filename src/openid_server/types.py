@@ -35,6 +35,28 @@ class KeyAlgorithm(StrEnum):
         return items
 
 
+class Permission(StrEnum):
+    """
+    Permissions that can be granted to non-admin users.
+    Admins implicitly have all of them.
+    """
+
+    create_apps = "create_apps"
+
+    @property
+    def label(self) -> str:
+        return _PERMISSION_LABELS[self]
+
+    @classmethod
+    def choices(cls):
+        return [(p.value, p.label) for p in cls]
+
+
+_PERMISSION_LABELS = {
+    Permission.create_apps: "Create own apps",
+}
+
+
 class UploadLocation(StrEnum):
     images = "images"
 

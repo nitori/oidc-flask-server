@@ -7,8 +7,8 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Email
 
-from openid_server.types import KeyAlgorithm
-from .utils import strip_filter
+from openid_server.types import KeyAlgorithm, Permission
+from .utils import strip_filter, MultiCheckboxField
 
 
 class AdminEditUserForm(FlaskForm):
@@ -31,6 +31,11 @@ class AdminEditUserForm(FlaskForm):
         "Given name", render_kw={"autocomplete": "off"}, filters=[strip_filter]
     )
     delete_picture = BooleanField("Delete picture")
+    permissions = MultiCheckboxField(
+        "Permissions",
+        choices=Permission.choices(),
+        description="Admins implicitly have all permissions.",
+    )
 
 
 class AdminCreateKey(FlaskForm):

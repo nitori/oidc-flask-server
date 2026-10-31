@@ -1,4 +1,5 @@
-from wtforms import TextAreaField, FileField
+from wtforms import TextAreaField, FileField, SelectMultipleField
+from wtforms.widgets import ListWidget, CheckboxInput
 from flask_wtf.file import FileSize, FileAllowed
 
 
@@ -28,6 +29,13 @@ class TextAreaListField(TextAreaField):
         if isinstance(self.data, (list, tuple)):
             return "\n".join(map(str, self.data))
         return str(self.data) if self.data is not None else ""
+
+
+class MultiCheckboxField(SelectMultipleField):
+    """Same as SelectMultipleField, but rendered as a list of checkboxes"""
+
+    widget = ListWidget(prefix_label=False)
+    option_widget = CheckboxInput()
 
 
 class WrappedFileField(FileField):

@@ -10,9 +10,16 @@
 
         <div class="row flex-row-reverse justify-content-between">
             <div class="col-12 col-lg-6 col-xl-4">
-                <div class="d-flex justify-content-end mb-4">
-                    <a href="{{ url_for('client.new_app') }}" class="btn btn-primary">Create new app</a>
-                </div>
+                {% if current_user.has_permission(Permission.create_apps) %}
+                    <div class="d-flex justify-content-end mb-4">
+                        <a href="{{ url_for('client.new_app') }}" class="btn btn-primary">Create new app</a>
+                    </div>
+                {% else %}
+                    <div class="form-text text-lg-end mb-4">
+                        You are not allowed to create new apps.
+                        Please ask an administrator if you need to.
+                    </div>
+                {% endif %}
             </div>
 
             <div class="col-12 col-lg-8 col-xl-6">

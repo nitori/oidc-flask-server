@@ -11,6 +11,14 @@
                 {{ input(class="form-check-input" + classes) }}
                 {{ input.label(class='form-check-label') }}
             </div>
+        {% elif input.type == 'MultiCheckboxField' %}
+            <div class="form-label">{{ input.label.text }}</div>
+            {% for option in input %}
+                <div class="form-check">
+                    {{ option(class="form-check-input" + classes) }}
+                    {{ option.label(class='form-check-label') }}
+                </div>
+            {% endfor %}
         {% elif input.type == 'RecaptchaField' %}
             <div class="{{ classes }}">
                 {{ input }}

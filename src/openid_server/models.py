@@ -8,7 +8,7 @@ from sqlalchemy import ForeignKey, String, JSON, UniqueConstraint
 from flask_login import UserMixin
 
 from openid_server import db
-from openid_server.types import KeyAlgorithm
+from openid_server.types import KeyAlgorithm, Permission
 from openid_server.utils import now, until
 from openid_server.security import (
     pw_context,
@@ -22,6 +22,8 @@ class User(db.Model, UserMixin):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     is_active: Mapped[bool] = mapped_column(default=True)
     is_admin: Mapped[bool] = mapped_column(default=False)
+    # granted Permission values. Irrelevant for admins, they have all permissions.
+    permissions: Mapped[list[str]] = mapped_column(JSON, default=list)
     email: Mapped[str] = mapped_column(unique=True)
     email_verified: Mapped[bool] = mapped_column(default=False)
     email_update_key: Mapped[str | None] = mapped_column()
@@ -37,6 +39,9 @@ class User(db.Model, UserMixin):
         cascade="all, delete-orphan",
         order_by="SshPublicKey.created",
     )
+
+    def has_permission(self, permission: Permission) -> bool:
+        return self.is_admin or permission in self.permissions
 
     @property
     def ssh_publickeys_claim(self) -> list[str]:

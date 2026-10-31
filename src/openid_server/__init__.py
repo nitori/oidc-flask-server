@@ -22,7 +22,7 @@ from jinja2 import pass_eval_context
 from markupsafe import Markup, escape
 from loguru import logger
 
-from openid_server.types import KeyPair
+from openid_server.types import KeyPair, Permission
 from openid_server.settings import settings
 from openid_server.utils import anonymize_ip
 
@@ -144,6 +144,7 @@ def setup_jinja(app: Flask) -> None:
     app.jinja_env.filters["jwks"] = jwks
     app.jinja_env.filters["nl2br"] = nl2br
     app.jinja_env.globals["settings"] = settings
+    app.jinja_env.globals["Permission"] = Permission
 
 
 def setup_blueprints(app: Flask) -> None:

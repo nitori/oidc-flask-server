@@ -23,7 +23,9 @@
                 <a href="{{ url_for('user.login') }}">Home</a>
             {% endif %}
             {% if current_user.is_authenticated %}
-                <a href="{{ url_for('client.index') }}">Your Apps</a>
+                {% if current_user.has_permission(Permission.create_apps) %}
+                    <a href="{{ url_for('client.index') }}">Your Apps</a>
+                {% endif %}
                 <a href="{{ url_for('frontend.docs') }}">Docs</a>
             {% endif %}
             {% if current_user.is_authenticated and current_user.is_admin %}
